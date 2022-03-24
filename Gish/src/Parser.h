@@ -492,9 +492,24 @@ public:
 		ParserResult result = ParserResult();
 		Token token = this->currentToken;
 		if (token.matches(TT_IDENTIFIER)) {
-			this->advance();
-			result.regAdvance();
-			return result.success(VarAccessNode(token));
+			REG_ADVANCE;
+			if (this->currentToken.matches(TT_L_PAREN)) {
+				REG_ADVANCE;
+				std::vector<Node*> arguments;
+				bool looped = false;
+				while (!this->currentToken.matches(TT_R_PAREN)) {
+					if (!this->currentToken.matches(TT_COMMA) && looped)
+						return result.failure(InvalidSyntaxError("Expected ','", this->currentToken.startPos, this->currentToken.endPos));
+					if (looped)
+						REG_ADVANCE;
+					arguments.push_back(new Node(result.Register(this->expression(tok))));
+					RET_ERROR;
+					looped = true;
+				}
+				REG_ADVANCE;
+				return result.success(FunctionCallNode(arguments, token));
+			}
+			else return result.success(VarAccessNode(token));
 		}
 		if (token.matches(TT_KEYWORD_TYPEOF)) {
 			this->advance();

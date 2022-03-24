@@ -327,7 +327,16 @@ public:
 	FunctionDefinitionNode(std::vector<Argument> arguments, Token varNameToken, Value::valueType returnType, Node* body);
 
 };
+class FunctionCallNode : public BaseNode {
+public:
+	std::vector<Node*> argumentsInOrder;
+	Token varNameToken = null;
 
+	FunctionCallNode(std::vector<Node*> argumentsInOrder, Token varNameToken);
+	std::string toString();
+	void clear();
+
+};
 
 class Node : public Object {
 public:
@@ -355,6 +364,7 @@ public:
 		case Class::IterationNode: ((IterationNode*)this->nodePtr)->clear(); break;
 		case Class::TimedIterationNode: ((TimedIterationNode*)this->nodePtr)->clear(); break;
 		case Class::FunctionDefinitionNode: ((FunctionDefinitionNode*)this->nodePtr)->clear(); break;
+		case Class::FunctionCallNode: ((FunctionCallNode*)this->nodePtr)->clear(); break;
 		}
 		if (this->nodePtr != nullptr)
 			delete this->nodePtr;
@@ -464,6 +474,12 @@ public:
 		this->nodePtr = new FunctionDefinitionNode(node);
 		this->type = Class::FunctionDefinitionNode;
 	}
+	Node(FunctionCallNode node) {
+		if (this->nodePtr != nullptr)
+			delete this->nodePtr;
+		this->nodePtr = new FunctionCallNode(node);
+		this->type = Class::FunctionCallNode;
+	}
 	std::string toString() {
 		switch (this->type) {
 		case Class::NumberNode: return ((NumberNode*)this->nodePtr)->toString(); break;
@@ -483,6 +499,7 @@ public:
 		case Class::IterationNode: return ((IterationNode*)this->nodePtr)->toString(); break;
 		case Class::TimedIterationNode: return ((TimedIterationNode*)this->nodePtr)->toString(); break;
 		case Class::FunctionDefinitionNode: return ((FunctionDefinitionNode*)this->nodePtr)->toString(); break;
+		case Class::FunctionCallNode: return ((FunctionCallNode*)this->nodePtr)->toString(); break;
 		default:
 			return "Null";
 		}
@@ -710,4 +727,28 @@ std::string FunctionDefinitionNode::toString() {
 	}
 	args += " ]";
 	return "(" + varNameToken.toString() + ":" + args + ") :" + this->body->toString();
+}
+
+FunctionCallNode::FunctionCallNode(std::vector<Node*> argumentsInOrder, Token varNameToken) {
+	this->argumentsInOrder = argumentsInOrder;
+	this->varNameToken = varNameToken;;
+}
+void FunctionCallNode::clear() {
+	for (int i = 0; i < this->argumentsInOrder.size(); i++) {
+		this->argumentsInOrder[i]->clear();
+		delete this->argumentsInOrder[i];
+	}
+	this->varNameToken.clear();
+}
+std::string FunctionCallNode::toString() {
+	std::string args = "[ ";
+	long long l = 0;
+	for (Node* argument : this->argumentsInOrder) {
+		args += argument->toString();
+		l++;
+		if (l < this->argumentsInOrder.size())
+			args += ", ";
+	}
+	args += " ]";
+	return "(" + varNameToken.toString() + ":" + args + ")";
 }

@@ -133,7 +133,6 @@ public:
 	InterpretedValue nullCon;
 };
 
-
 class RuntimeResult : public Result {
 public:
 
@@ -192,6 +191,37 @@ std::string RuntimeResult::toString() {
 	return this->result.toString();
 }
 
+class Interpreter;
+
+class Function : public Object {
+public:
+	std::string Name;
+	Node body;
+	std::vector<Argument> arguments;
+	Interpreter* mInterpreter;
+
+	RuntimeResult execute(std::vector<InterpretedValue> arguments);
+
+	Function() {
+
+	}
+
+	Function(std::string Name, Node body, std::vector<Argument> arguments, Interpreter* mInterpreter) {
+		this->Name = Name;
+		this->body = body;
+		this->arguments = arguments;
+		this->mInterpreter = mInterpreter;
+	}
+
+
+	
+	nullCMP;
+	Function nullEQ;
+	Function nullCon;
+
+};
+
+
 class SymbolTable : public Object {
 public:
 	SymbolTable* parentTable = nullptr;
@@ -230,6 +260,37 @@ public:
 	SymbolTable nullCon;
 };
 
+class FunctionTable {
+public:
+	std::map<std::string, Function> symbols;
+
+	FunctionTable() {
+
+	}
+
+	Function get(std::string key) {
+		Function value;
+		try {
+			value = this->symbols.at(key);
+		}
+		catch (std::out_of_range) {
+			return Function(null);
+		}
+		return value;
+	}
+
+	void set(std::string name, Function value) {
+		this->symbols.insert_or_assign(name, value);
+	}
+	void remove(std::string name) {
+		this->symbols.erase(name);
+	}
+
+	void clear() {
+
+	}
+};
+
 class Context : public Object {
 public:
 
@@ -238,8 +299,10 @@ public:
 	}
 
 	SymbolTable symbolTable = SymbolTable();
+	FunctionTable functionTable = FunctionTable();
 	void clear() {
 		this->symbolTable.clear();
+		this->functionTable.clear();
 	}
 
 	nullCMP;
@@ -250,9 +313,9 @@ public:
 class Interpreter : public Object {
 public:
 
+	static Context context;
 
 	RuntimeResult run(Node* node) {
-		static Context context;
 		return this->visit(*node, context);
 	}
 
@@ -275,6 +338,8 @@ public:
 		case Class::IfNode: return this->visitIfNode(*(IfNode*)node.nodePtr, context);
 		case Class::IterationNode: return this->visitIterationNode(*(IterationNode*)node.nodePtr, context);
 		case Class::TimedIterationNode: return this->visitTimedIterationNode(*(TimedIterationNode*)node.nodePtr, context);
+		case Class::FunctionDefinitionNode: return this->visitFunctionDefinitionNode(*(FunctionDefinitionNode*)node.nodePtr, context);
+		case Class::FunctionCallNode: return this->visitFunctionCallNode(*(FunctionCallNode*)node.nodePtr, context);
 		default:
 			return RuntimeResult({}, null);
 		}
@@ -492,4 +557,58 @@ public:
 		return result.failure(RuntimeError("For-Condition is not of type int-Number", node.startPos, node.endPos));
 	}
 
+	RuntimeResult visitFunctionDefinitionNode(FunctionDefinitionNode node, Context& context) {
+		RuntimeResult result = RuntimeResult();
+		std::string functionName = node.varNameToken.value.cString;
+		Node functionBody = Node(*node.body);
+		std::vector<Argument> functionArguments = node.arguments;
+
+		Function function = Function(functionName, functionBody, functionArguments, this);
+		context.functionTable.set(functionName, function);
+		return result.success(null);
+	}
+
+	RuntimeResult visitFunctionCallNode(FunctionCallNode node, Context& context) {
+		RuntimeResult result = RuntimeResult();		
+
+		std::vector<InterpretedValue> arguments;
+
+		for (int i = 0; i < node.argumentsInOrder.size(); i++) {
+			arguments.push_back(result.Register(this->visit(*node.argumentsInOrder[i], context)));
+			RET_ERROR;
+		}
+
+		InterpretedValue returnedValue = result.Register(context.functionTable.get(node.varNameToken.value.cString).execute(arguments));
+		RET_ERROR;
+		return result.success(returnedValue);
+	}
+
 };
+
+Context Interpreter::context = Context();
+
+RuntimeResult Function::execute(std::vector<InterpretedValue> arguments) {
+	RuntimeResult result = RuntimeResult();
+	Context context = mInterpreter->context;
+	Context newContext;
+	newContext.symbolTable.parentTable = &context.symbolTable;
+
+	std::cout << arguments.size() << ":" << this->arguments.size() << "\n";
+
+	if (arguments.size() == 0 && this->arguments.size() != 0)
+		return result.failure(RuntimeError("Too few arguments for function call", Position(), Position()));
+
+	if (arguments.size() < this->arguments.size())
+		return result.failure(RuntimeError("Too few arguments for function call", arguments[arguments.size() - 1].startPos, Position(arguments[arguments.size() - 1].endPos).advance(0)));
+	if (arguments.size() > this->arguments.size())
+		return result.failure(RuntimeError("Too many arguments for function call", arguments[arguments.size() - 1].startPos, Position(arguments[arguments.size() - 1].endPos).advance(0)));
+	for (int i = 0; i < arguments.size(); i++) {
+		newContext.symbolTable.set(this->arguments[i].Name, arguments[i]);
+	}
+
+	std::cout << this->body.toString() << "\n";
+	InterpretedValue returnedResult = result.Register(mInterpreter->visit(this->body, newContext));
+	RET_ERROR;
+
+	return result.success(returnedResult);
+}

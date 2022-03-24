@@ -80,6 +80,7 @@ enum class Class {
 	VarIndexNode,
 	VarIndexReAssignNode,
 	FunctionDefinitionNode,
+	FunctionCallNode,
 	ParserResult,
 	Parser
 };
