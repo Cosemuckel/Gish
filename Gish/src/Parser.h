@@ -34,7 +34,13 @@ public:
 
 	}
 
-	ParserResult success(Node node) {
+	ParserResult success(Node& node) {
+		this->node.clear();
+		this->node = node;
+		return *this;
+	}
+
+	ParserResult success(Node&& node) {
 		this->node.clear();
 		this->node = node;
 		return *this;
@@ -107,7 +113,7 @@ public:
 			REG_ADVANCE;
 		}
 		while (!this->currentToken.matches(endOfExpression)) {
-			Node node = result.Register(this->functionalExpression(tok));
+			Node node = result.Register(this->returnableExpression(tok));
 			RET_ERROR;
 			bool s = false;
 			while (this->currentToken.matches(TT_SEMICOLON)) {
@@ -126,13 +132,26 @@ public:
 		return result.success(l);
 	}
 
+	ParserResult returnableExpression(Token tok) {
+
+		if (this->currentToken.matches(TT_KEYWORD_RETURN)) {
+			ParserResult result = ParserResult();
+			REG_ADVANCE;
+			Node value = result.Register(this->expression(tok));
+			RET_ERROR;
+			return result.success(ReturnNode(&value));			
+		}
+
+		return this->functionalExpression(tok);
+	}
+
 	ParserResult functionalExpression(Token tok) {
 		ParserResult result = ParserResult();
 		Node body;
 		if (this->currentToken.matches(TT_KEYWORD_DO)) {
 			REG_ADVANCE;
 			if (!this->currentToken.matches(TT_L_CURLY_PAREN)) {
-				body = result.Register(this->functionalExpression(tok));
+				body = result.Register(this->returnableExpression(tok));
 			}
 			else {
 				REG_ADVANCE;
@@ -153,7 +172,7 @@ public:
 					if (!this->currentToken.matches(TT_L_CURLY_PAREN)) {
 						if (!this->currentToken.matches(TT_KEYWORD_DO))
 							return result.failure(InvalidSyntaxError("Expected 'do'", this->currentToken.startPos, this->currentToken.endPos));
-						elseStatement = result.Register(this->functionalExpression(tok));
+						elseStatement = result.Register(this->returnableExpression(tok));
 					}
 					else {
 						REG_ADVANCE; 
@@ -183,8 +202,6 @@ public:
 
 			return result.success(body);
 		}
-
-
 
 		return this->varChangingExpression(tok);
 	}
@@ -528,8 +545,7 @@ public:
 		if (token.matches(TT_INT) || token.matches(TT_DOUBLE)) {
 			this->advance();
 			result.regAdvance();
-			Node node = Node(NumberNode(token));
-			return result.success(node);
+			return result.success(Node(NumberNode(token)));
 		}
 		if (token.matches(TT_STRING)) {
 			this->advance();

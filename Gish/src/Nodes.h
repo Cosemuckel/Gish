@@ -323,6 +323,15 @@ public:
 	void clear();
 
 };
+class ReturnNode : public BaseNode {
+public:
+	Node* value;
+
+	std::string toString();
+	void clear();
+	ReturnNode(Node* value);
+
+};
 
 class Node : public Object {
 public:
@@ -351,9 +360,14 @@ public:
 		case Class::TimedIterationNode: ((TimedIterationNode*)this->nodePtr)->clear(); break;
 		case Class::FunctionDefinitionNode: ((FunctionDefinitionNode*)this->nodePtr)->clear(); break;
 		case Class::FunctionCallNode: ((FunctionCallNode*)this->nodePtr)->clear(); break;
+		case Class::ReturnNode: ((ReturnNode*)this->nodePtr)->clear(); break;
 		}
 		if (this->nodePtr != nullptr)
 			delete this->nodePtr;
+	}
+
+	Node(const Node& node) 
+		:Node(node, true) {
 	}
 
 	Node(const Node& node, bool b) {
@@ -377,6 +391,7 @@ public:
 		case Class::TimedIterationNode: this->nodePtr = new TimedIterationNode(*(TimedIterationNode*)     node.nodePtr); break;
 		case Class::FunctionDefinitionNode: this->nodePtr = new FunctionDefinitionNode(*(FunctionDefinitionNode*) node.nodePtr); break;
 		case Class::FunctionCallNode:   this->nodePtr = new FunctionCallNode(*(FunctionCallNode*)           node.nodePtr); break;
+		case Class::ReturnNode:   this->nodePtr = new ReturnNode(*(ReturnNode*)           node.nodePtr); break;
 		default:
 			break;
 		}
@@ -495,6 +510,12 @@ public:
 		this->nodePtr = new FunctionCallNode(node);
 		this->type = Class::FunctionCallNode;
 	}
+	Node(ReturnNode node) {
+		if (this->nodePtr != nullptr)
+			delete this->nodePtr;
+		this->nodePtr = new ReturnNode(node);
+		this->type = Class::ReturnNode;
+	}
 	std::string toString() {
 		switch (this->type) {
 		case Class::NumberNode: return ((NumberNode*)this->nodePtr)->toString(); break;
@@ -515,6 +536,7 @@ public:
 		case Class::TimedIterationNode: return ((TimedIterationNode*)this->nodePtr)->toString(); break;
 		case Class::FunctionDefinitionNode: return ((FunctionDefinitionNode*)this->nodePtr)->toString(); break;
 		case Class::FunctionCallNode: return ((FunctionCallNode*)this->nodePtr)->toString(); break;
+		case Class::ReturnNode: return ((ReturnNode*)this->nodePtr)->toString(); break;
 		default:
 			return "Null";
 		}
@@ -821,4 +843,15 @@ ArrayNode::ArrayNode(ArrayNode* node) {
 	for (int i = 0; i < node->nodes.size(); i++)
 		this->nodes.push_back(new Node(*node->nodes[i]));
 	this->mClass = Class::ArrayNode;
+}
+
+ReturnNode::ReturnNode(Node* value) {
+	this->value = new Node(*value);
+}
+void ReturnNode::clear() {
+	this->value->clear();
+	delete this->value;
+}
+std::string ReturnNode::toString() {
+	return "return " + this->value->toString();
 }

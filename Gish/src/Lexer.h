@@ -286,6 +286,8 @@ public:
 		else if (string == "smaller") tokenType = TT_SMALL;
 		else if (string == "not")     tokenType = TT_NOT;
 
+		else if (string == "return")        tokenType = TT_KEYWORD_RETURN;
+
 		else if (string == "index")        tokenType = TT_KEYWORD_INDEX;
 		else if (string == "sizeof")       tokenType = TT_KEYWORD_SIZEOF;
 		else if (string == "iterations")   tokenType = TT_KEYWORD_ITERATIONS;

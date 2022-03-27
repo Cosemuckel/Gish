@@ -44,6 +44,8 @@ TokenType TT_KEYWORD_INDEX        ("KEY", "INDEX");
 TokenType TT_KEYWORD_SIZEOF       ("KEY", "SIZEOF");
 TokenType TT_KEYWORD_ITERATIONS   ("KEY", "ITERATIONS");
 
+TokenType TT_KEYWORD_RETURN ("KEY", "RETURN");
+
 TokenType TT_KEYWORD_IF      ("KEY", "IF");
 TokenType TT_KEYWORD_ELSE    ("KEY", "ELSE");
 TokenType TT_KEYWORD_FOR     ("KEY", "FOR");

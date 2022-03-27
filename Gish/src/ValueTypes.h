@@ -81,6 +81,7 @@ enum class Class {
 	VarIndexReAssignNode,
 	FunctionDefinitionNode,
 	FunctionCallNode,
+	ReturnNode,
 	ParserResult,
 	Parser
 };
