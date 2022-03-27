@@ -104,19 +104,8 @@ public:
 	std::vector<Node*> nodes;
 	Token type = null;
 
-	ArrayNode(std::vector<Node*> nodes, Token type) {
-		this->type.clear();
-		this->nodes = nodes;
-		this->type = type;
-	}
-	ArrayNode(ArrayNode* node) {
-		this->type.clear();
-		this->type = node->type;
-		this->startPos = node->type.startPos;
-		this->endPos = node->type.endPos;
-		this->nodes = node->nodes;
-		this->mClass = Class::ArrayNode;
-	}
+	ArrayNode(std::vector<Node*> nodes, Token type);
+	ArrayNode(ArrayNode* node);
 
 	std::string toString();
 
@@ -128,16 +117,10 @@ class ListNode : public BaseNode {
 public:
 	std::vector<Node*> nodes;
 
-	ListNode(std::vector<Node*> nodes) {
-		this->nodes = nodes;
-	}
-	ListNode(ListNode* node) {
-		this->startPos = node->startPos;
-		this->endPos = node->endPos;
-		this->nodes = node->nodes;
-		this->mClass = Class::ListNode;
-	}
-
+	ListNode() {}
+	ListNode(std::vector<Node*> nodes);
+	ListNode(std::vector<Node*> nodes, bool b);
+	ListNode(ListNode* node);
 	std::string toString();
 
 	void clear();
@@ -260,6 +243,9 @@ public:
 	Token opToken = null;
 	Node* rightNode;
 
+	BinaryNode(const BinaryNode& node)
+		:BinaryNode(node.opToken, node.leftNode, node.rightNode) {
+	}
 	BinaryNode(Token opToken, Node* leftNode, Node* rightNode);
 
 	std::string toString();
@@ -369,9 +355,37 @@ public:
 		if (this->nodePtr != nullptr)
 			delete this->nodePtr;
 	}
+
+	Node(const Node& node, bool b) {
+		this->type = node.type;
+		switch (node.type) {
+		case Class::NumberNode:         this->nodePtr = new NumberNode(*(NumberNode*)        node.nodePtr); break;
+		case Class::StringNode:         this->nodePtr = new StringNode(*(StringNode*)        node.nodePtr); break;
+		case Class::BooleanNode:        this->nodePtr = new BooleanNode(*(BooleanNode*)       node.nodePtr); break;
+		case Class::UnaryNode:          this->nodePtr = new UnaryNode(*(UnaryNode*)         node.nodePtr); break;
+		case Class::BinaryNode:         this->nodePtr = new BinaryNode(*(BinaryNode*)        node.nodePtr); break;
+		case Class::VarAssignNode:      this->nodePtr = new VarAssignNode(*(VarAssignNode*)     node.nodePtr); break;
+		case Class::VarReAssignNode:    this->nodePtr = new VarReAssignNode(*(VarReAssignNode*)   node.nodePtr); break;
+		case Class::VarAccessNode:      this->nodePtr = new VarAccessNode(*(VarAccessNode*)     node.nodePtr); break;
+		case Class::VarIndexNode:       this->nodePtr = new VarIndexAccessNode(*(VarIndexAccessNode*)node.nodePtr); break;
+		case Class::VarIndexReAssignNode: this->nodePtr = new VarIndexReAssignNode(*(VarIndexReAssignNode*) node.nodePtr); break;
+		case Class::ArrayNode:          this->nodePtr = new ArrayNode(*(ArrayNode*)              node.nodePtr); break;
+		case Class::ListNode:           this->nodePtr = new ListNode(*(ListNode*)               node.nodePtr); break;
+		case Class::TypeNode:           this->nodePtr = new TypeNode(*(TypeNode*)               node.nodePtr); break;
+		case Class::IfNode:             this->nodePtr = new IfNode(*(IfNode*)                 node.nodePtr); break;
+		case Class::IterationNode:      this->nodePtr = new IterationNode(*(IterationNode*)          node.nodePtr); break;
+		case Class::TimedIterationNode: this->nodePtr = new TimedIterationNode(*(TimedIterationNode*)     node.nodePtr); break;
+		case Class::FunctionDefinitionNode: this->nodePtr = new FunctionDefinitionNode(*(FunctionDefinitionNode*) node.nodePtr); break;
+		case Class::FunctionCallNode:   this->nodePtr = new FunctionCallNode(*(FunctionCallNode*)           node.nodePtr); break;
+		default:
+			break;
+		}
+	}
+
 	Node() {
 		this->mClass = Class::Node;
 	}
+
 	Node(NumberNode node) {
 		if (this->nodePtr != nullptr)
 			delete this->nodePtr;
@@ -471,6 +485,7 @@ public:
 	Node(FunctionDefinitionNode node) {
 		if (this->nodePtr != nullptr)
 			delete this->nodePtr;
+		std::cout << "D\n";
 		this->nodePtr = new FunctionDefinitionNode(node);
 		this->type = Class::FunctionDefinitionNode;
 	}
@@ -710,11 +725,15 @@ FunctionDefinitionNode::FunctionDefinitionNode(std::vector<Argument> arguments, 
 	this->varNameToken = varNameToken;
 	this->returnType = returnType;
 	this->body = new Node(*body);
+	std::cout << "C\n";
 }
+
 void FunctionDefinitionNode::clear() {
 	this->varNameToken.clear();
 	this->body->clear();
+	this->arguments.clear();
 	delete this->body;
+	std::cout << "B\n";
 }
 std::string FunctionDefinitionNode::toString() {
 	std::string args = "[ ";
@@ -738,6 +757,7 @@ void FunctionCallNode::clear() {
 		this->argumentsInOrder[i]->clear();
 		delete this->argumentsInOrder[i];
 	}
+	this->argumentsInOrder.clear();
 	this->varNameToken.clear();
 }
 std::string FunctionCallNode::toString() {
@@ -751,4 +771,54 @@ std::string FunctionCallNode::toString() {
 	}
 	args += " ]";
 	return "(" + varNameToken.toString() + ":" + args + ")";
+}
+
+ListNode::ListNode(std::vector<Node*> nodes) {
+	this->nodes.clear();
+	for (int i = 0; i < nodes.size(); i++) {
+		this->nodes.push_back(new Node(*nodes[i]));
+	}
+	this->mClass = Class::ListNode;
+}
+ListNode::ListNode(std::vector<Node*> nodes, bool b) {
+	this->nodes.clear();
+	for (int i = 0; i < nodes.size(); i++) {
+		this->nodes.push_back(new Node(*nodes[i], true));
+	}
+	this->mClass = Class::ListNode;
+}
+ListNode::ListNode(ListNode* node) {
+	this->startPos = node->startPos;
+	this->endPos = node->endPos;
+	for (int i = 0; i < this->nodes.size(); i++) {
+		this->nodes[i]->clear();
+		delete this->nodes[i];
+	}
+	this->nodes.clear();
+	for (int i = 0; i < node->nodes.size(); i++) {
+		this->nodes.push_back(new Node(*node->nodes[i]));
+	}
+	this->mClass = Class::ListNode;
+}
+
+ArrayNode::ArrayNode(std::vector<Node*> nodes, Token type) {
+	this->type.clear();
+	for (int i = 0; i < nodes.size(); i++)
+		this->nodes.push_back(new Node(*nodes[i]));
+	this->type = type;
+	this->mClass = Class::ArrayNode;
+}
+ArrayNode::ArrayNode(ArrayNode* node) {
+	this->type.clear();
+	this->type = node->type;
+	this->startPos = node->type.startPos;
+	this->endPos = node->type.endPos;
+	for (int i = 0; i < this->nodes.size(); i++) {
+		this->nodes[i]->clear();
+		delete this->nodes[i];
+	}
+	this->nodes.clear();
+	for (int i = 0; i < node->nodes.size(); i++)
+		this->nodes.push_back(new Node(*node->nodes[i]));
+	this->mClass = Class::ArrayNode;
 }

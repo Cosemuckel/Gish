@@ -119,7 +119,11 @@ public:
 			statements.push_back(new Node(node));
 		}
 		REG_ADVANCE;
-		return result.success(ListNode(statements));
+		ListNode l = ListNode(statements);
+		for (int i = 0; i < statements.size(); i++) {
+			delete statements[i];
+		}
+		return result.success(l);
 	}
 
 	ParserResult functionalExpression(Token tok) {

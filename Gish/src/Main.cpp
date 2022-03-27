@@ -65,6 +65,7 @@ int main() {
 		parserResult.clear();
 		runtimeResult.clear();
 		freeLast();
-	};
+		// Interpreter::context.functionTable.clear();
+	}
 	system("pause");
 } 
