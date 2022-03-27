@@ -205,7 +205,7 @@ class Interpreter;
 class Function : public Object {
 public:
 	std::string Name;
-	ListNode body;
+	Node body;
 	std::vector<Argument> arguments;
 	Interpreter* mInterpreter;
 
@@ -221,7 +221,7 @@ public:
 
 	Function(std::string Name, Node body, std::vector<Argument> arguments, Interpreter* mInterpreter) {
 		this->Name = Name;
-		this->body = ListNode(((ListNode*)body.nodePtr)->nodes, true);
+		this->body = Node(body);
 		this->arguments = arguments;
 		this->mInterpreter = mInterpreter;
 	}
@@ -465,6 +465,7 @@ public:
 		InterpretedValue value = result.Register(this->visit(*node.value, context, inFunction));
 		RET_ERROR;
 		RET_RET;
+		std::cout << "AHA\n";
 		if (context.symbolTable.get(variableName) == null)
 			return result.failure(RuntimeError(std::string("'") + variableName + "' is not defined", node.startPos, node.endPos));
 		if (value.type != context.symbolTable.get(variableName).type)

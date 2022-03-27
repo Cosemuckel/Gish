@@ -61,7 +61,6 @@ public:
 	}
 
 	void clear() {
-		std::cout << "HEY";
 		this->token.clear();
 	}
 
@@ -362,158 +361,91 @@ public:
 		case Class::FunctionCallNode: ((FunctionCallNode*)this->nodePtr)->clear(); break;
 		case Class::ReturnNode: ((ReturnNode*)this->nodePtr)->clear(); break;
 		}
-		if (this->nodePtr != nullptr)
-			delete this->nodePtr;
 	}
 
-	Node(const Node& node) 
-		:Node(node, true) {
-	}
-
-	Node(const Node& node, bool b) {
+	Node(const Node& node) {
 		this->type = node.type;
-		switch (node.type) {
-		case Class::NumberNode:         this->nodePtr = new NumberNode(*(NumberNode*)        node.nodePtr); break;
-		case Class::StringNode:         this->nodePtr = new StringNode(*(StringNode*)        node.nodePtr); break;
-		case Class::BooleanNode:        this->nodePtr = new BooleanNode(*(BooleanNode*)       node.nodePtr); break;
-		case Class::UnaryNode:          this->nodePtr = new UnaryNode(*(UnaryNode*)         node.nodePtr); break;
-		case Class::BinaryNode:         this->nodePtr = new BinaryNode(*(BinaryNode*)        node.nodePtr); break;
-		case Class::VarAssignNode:      this->nodePtr = new VarAssignNode(*(VarAssignNode*)     node.nodePtr); break;
-		case Class::VarReAssignNode:    this->nodePtr = new VarReAssignNode(*(VarReAssignNode*)   node.nodePtr); break;
-		case Class::VarAccessNode:      this->nodePtr = new VarAccessNode(*(VarAccessNode*)     node.nodePtr); break;
-		case Class::VarIndexNode:       this->nodePtr = new VarIndexAccessNode(*(VarIndexAccessNode*)node.nodePtr); break;
-		case Class::VarIndexReAssignNode: this->nodePtr = new VarIndexReAssignNode(*(VarIndexReAssignNode*) node.nodePtr); break;
-		case Class::ArrayNode:          this->nodePtr = new ArrayNode(*(ArrayNode*)              node.nodePtr); break;
-		case Class::ListNode:           this->nodePtr = new ListNode(*(ListNode*)               node.nodePtr); break;
-		case Class::TypeNode:           this->nodePtr = new TypeNode(*(TypeNode*)               node.nodePtr); break;
-		case Class::IfNode:             this->nodePtr = new IfNode(*(IfNode*)                 node.nodePtr); break;
-		case Class::IterationNode:      this->nodePtr = new IterationNode(*(IterationNode*)          node.nodePtr); break;
-		case Class::TimedIterationNode: this->nodePtr = new TimedIterationNode(*(TimedIterationNode*)     node.nodePtr); break;
-		case Class::FunctionDefinitionNode: this->nodePtr = new FunctionDefinitionNode(*(FunctionDefinitionNode*) node.nodePtr); break;
-		case Class::FunctionCallNode:   this->nodePtr = new FunctionCallNode(*(FunctionCallNode*)           node.nodePtr); break;
-		case Class::ReturnNode:   this->nodePtr = new ReturnNode(*(ReturnNode*)           node.nodePtr); break;
-		default:
-			break;
-		}
+		this->nodePtr = node.nodePtr;
 	}
 
 	Node() {
 		this->mClass = Class::Node;
 	}
 
-	Node(NumberNode node) {
-		if (this->nodePtr != nullptr)
-			delete this->nodePtr;
-		this->nodePtr = new NumberNode(&node);
+	Node(NumberNode* node) {
+		this->nodePtr =node;
 		this->type = Class::NumberNode;
 	}
-	Node(StringNode node) {
-		if (this->nodePtr != nullptr)
-			delete this->nodePtr;
-		this->nodePtr = new StringNode(node);
+	Node(StringNode* node) {
+		this->nodePtr = node;
 		this->type = Class::StringNode;
 	}
-	Node(BooleanNode node) {
-		if (this->nodePtr != nullptr)
-			delete this->nodePtr;
-		this->nodePtr = new BooleanNode(node);
+	Node(BooleanNode* node) {
+		this->nodePtr = node;
 		this->type = Class::BooleanNode;
 	}
-	Node(ArrayNode node) {
-		if (this->nodePtr != nullptr)
-			delete this->nodePtr;
-		this->nodePtr = new ArrayNode(node);
+	Node(ArrayNode* node) {
+		this->nodePtr = node;
 		this->type = Class::ArrayNode;
 	}
-	Node(ListNode node) {
-		if (this->nodePtr != nullptr)
-			delete this->nodePtr;
-		this->nodePtr = new ListNode(node);
+	Node(ListNode* node) {
+		this->nodePtr = node;
 		this->type = Class::ListNode;
 	}
-	Node(TypeNode node) {
-		if (this->nodePtr != nullptr)
-			delete this->nodePtr;
-		this->nodePtr = new TypeNode(node);
+	Node(TypeNode* node) {
+		this->nodePtr = node;
 		this->type = Class::TypeNode;
 	}
-	Node(VarAccessNode node) {
-		if (this->nodePtr != nullptr)
-			delete this->nodePtr;
-		this->nodePtr = new VarAccessNode(node);
+	Node(VarAccessNode* node) {
+		this->nodePtr = node;
 		this->type = Class::VarAccessNode;
 	}
-	Node(VarIndexAccessNode node) {
-		if (this->nodePtr != nullptr)
-			delete this->nodePtr;
-		this->nodePtr = new VarIndexAccessNode(node);
+	Node(VarIndexAccessNode* node) {
+		this->nodePtr = node;
 		this->type = Class::VarIndexNode;
 	}
-	Node(VarAssignNode node) {
-		if (this->nodePtr != nullptr)
-			delete this->nodePtr;
-		this->nodePtr = new VarAssignNode(node);
+	Node(VarAssignNode* node) {
+		this->nodePtr = node;
 		this->type = Class::VarAssignNode;
 	}
-	Node(VarReAssignNode node) {
-		if (this->nodePtr != nullptr)
-			delete this->nodePtr;
-		this->nodePtr = new VarReAssignNode(node);
+	Node(VarReAssignNode* node) {
+		this->nodePtr = node;
 		this->type = Class::VarReAssignNode;
 	}
-	Node(UnaryNode node) {
-		if (this->nodePtr != nullptr)
-			delete this->nodePtr;
-		this->nodePtr = new UnaryNode(node);
+	Node(UnaryNode* node) {
+		this->nodePtr = node;
 		this->type = Class::UnaryNode;
 	}
-	Node(BinaryNode node) {
-		if (this->nodePtr != nullptr)
-			delete this->nodePtr;
-		this->nodePtr = new BinaryNode(node);
+	Node(BinaryNode* node) {
+		this->nodePtr = node;
 		this->type = Class::BinaryNode;
 	}
-	Node(IfNode node) {
-		if (this->nodePtr != nullptr)
-			delete this->nodePtr;
-		this->nodePtr = new IfNode(node);
+	Node(IfNode* node) {
+		this->nodePtr = node;
 		this->type = Class::IfNode;
 	}
-	Node(VarIndexReAssignNode node) {
-		if (this->nodePtr != nullptr)
-			delete this->nodePtr;
-		this->nodePtr = new VarIndexReAssignNode(node);
+	Node(VarIndexReAssignNode* node) {
+		this->nodePtr = node;
 		this->type = Class::VarIndexReAssignNode;
 	}
-	Node(IterationNode node) {
-		if (this->nodePtr != nullptr)
-			delete this->nodePtr;
-		this->nodePtr = new IterationNode(node);
+	Node(IterationNode* node) {
+		this->nodePtr = node;
 		this->type = Class::IterationNode;
 	}
-	Node(TimedIterationNode node) {
-		if (this->nodePtr != nullptr)
-			delete this->nodePtr;
-		this->nodePtr = new TimedIterationNode(node);
+	Node(TimedIterationNode* node) {
+		this->nodePtr = node;
 		this->type = Class::TimedIterationNode;
 	}
-	Node(FunctionDefinitionNode node) {
-		if (this->nodePtr != nullptr)
-			delete this->nodePtr;
-		std::cout << "D\n";
-		this->nodePtr = new FunctionDefinitionNode(node);
+	Node(FunctionDefinitionNode* node) {
+		this->nodePtr = node;
 		this->type = Class::FunctionDefinitionNode;
 	}
-	Node(FunctionCallNode node) {
-		if (this->nodePtr != nullptr)
-			delete this->nodePtr;
-		this->nodePtr = new FunctionCallNode(node);
+	Node(FunctionCallNode* node) {
+		this->nodePtr = node;
 		this->type = Class::FunctionCallNode;
 	}
-	Node(ReturnNode node) {
-		if (this->nodePtr != nullptr)
-			delete this->nodePtr;
-		this->nodePtr = new ReturnNode(node);
+	Node(ReturnNode* node) {
+		this->nodePtr = node;
 		this->type = Class::ReturnNode;
 	}
 	std::string toString() {
@@ -550,7 +482,7 @@ public:
 UnaryNode::UnaryNode(Token opToken, Node* nodeOn) {
 	this->opToken.clear();
 	this->opToken = opToken;
-	this->nodeOn = new Node(*nodeOn);
+	this->nodeOn = nodeOn;
 	if (opToken.matches(TT_FAC)) {
 		this->startPos = nodeOn->startPos;
 		this->endPos = opToken.endPos;
@@ -566,15 +498,14 @@ std::string UnaryNode::toString() {
 }
 void UnaryNode::clear() {
 	this->nodeOn->clear();
-	delete this->nodeOn;
 	this->opToken.clear();
 }
 
 BinaryNode::BinaryNode(Token opToken, Node* leftNode, Node* rightNode) {
 	this->opToken.clear();
 	this->opToken = opToken;
-	this->leftNode = new Node(*leftNode);
-	this->rightNode = new Node(*rightNode);
+	this->leftNode = leftNode;
+	this->rightNode = rightNode;
 	this->startPos = this->leftNode->startPos;
 	this->endPos = this->rightNode->endPos;
 }
@@ -585,8 +516,6 @@ void BinaryNode::clear() {
 	this->leftNode->clear();
 	this->rightNode->clear();
 	this->opToken.clear();
-	delete this->leftNode;
-	delete this->rightNode;
 }
 
 std::string ArrayNode::toString() {
@@ -599,7 +528,6 @@ void ArrayNode::clear() {
 	this->type.clear();
 	for (int i = 0; i < nodes.size(); i++) {
 		nodes[i]->clear();
-		delete nodes[i];
 	}
 	this->nodes.~vector();
 }
@@ -619,14 +547,13 @@ std::string ListNode::toString() {
 void ListNode::clear() {
 	for (int i = 0; i < nodes.size(); i++) {
 		nodes[i]->clear();
-		delete nodes[i];
 	}
 	this->nodes.~vector();
 }
 VarIndexAccessNode::VarIndexAccessNode(Token varNameToken, Node* index) {
 	this->varNameToken.clear();
 	this->varNameToken = varNameToken;
-	this->index = new Node(*index);
+	this->index = index;
 	this->startPos = index->startPos;
 	this->endPos = varNameToken.endPos;
 }
@@ -637,17 +564,16 @@ void VarIndexAccessNode::clear() {
 	this->varNameToken.clear();
 	if (this->index != nullptr) {
 		this->index->clear();
-		delete this->index;
 	}
 }
 
 VarIndexReAssignNode::VarIndexReAssignNode(Token varNameToken, Node* value, Node* index) {
 	this->varNameToken.clear();
 	this->varNameToken = varNameToken;
-	this->value = new Node(*value);
+	this->value = value;
 	this->startPos = index->startPos;
 	this->endPos = value->endPos;
-	this->index = new Node(*index);
+	this->index = index;
 }
 std::string VarIndexReAssignNode::toString() {
 	return  std::string("index ") + index->toString() + ": (" + this->varNameToken.value.toString() + ":" + this->value->toString() + ")";
@@ -655,17 +581,15 @@ std::string VarIndexReAssignNode::toString() {
 void VarIndexReAssignNode::clear() {
 	this->value->clear();
 	this->varNameToken.clear();
-	delete this->value;
 	if (this->index != nullptr) {
 		this->index->clear();
-		delete this->index;
 	}
 }
 
 VarAssignNode::VarAssignNode(Token varNameToken, Node* value, Value::valueType type) {
 	this->varNameToken.clear();
 	this->varNameToken = varNameToken;
-	this->value = new Node(*value);
+	this->value = value;
 	this->startPos = value->startPos;
 	this->endPos = value->endPos;
 	this->type = type;
@@ -676,13 +600,12 @@ std::string VarAssignNode::toString() {
 void VarAssignNode::clear() {
 	this->value->clear();
 	this->varNameToken.clear();
-	delete this->value;
 }
 
 VarReAssignNode::VarReAssignNode(Token varNameToken, Node* value) {
 	this->varNameToken.clear();
 	this->varNameToken = varNameToken;
-	this->value = new Node(*value);
+	this->value = value;
 	this->startPos = value->startPos;
 	this->endPos = value->endPos;
 }
@@ -692,23 +615,20 @@ std::string VarReAssignNode::toString() {
 void VarReAssignNode::clear() {
 	this->value->clear();
 	this->varNameToken.clear();
-	delete this->value;
 }
 
 IfNode::IfNode(Node* condition, Node* body, Node* elseStatement) {
-	this->condition = new Node(*condition);
-	this->body = new Node(*body);
+	this->condition = condition;
+	this->body = body;
 	if (elseStatement != nullptr)
-		this->elseStatement = new Node(*elseStatement);
+		this->elseStatement = elseStatement;
 }
 void IfNode::clear() {
 	this->condition->clear();
-	delete this->condition;
 	this->body->clear();
-	delete this->body;
 	if (this->elseStatement != nullptr) {
 		this->elseStatement->clear();
-		delete this->elseStatement;
+
 	}
 }
 std::string IfNode::toString() {
@@ -716,27 +636,23 @@ std::string IfNode::toString() {
 }
 
 IterationNode::IterationNode(Node* iterations, Node* body) {
-	this->iterations = new Node(*iterations);
-	this->body = new Node(*body);
+	this->iterations = iterations;
+	this->body = body;
 }
 void IterationNode::clear() {
 	this->iterations->clear();
-	delete this->iterations;
 	this->body->clear();
-	delete this->body;
 }
 std::string IterationNode::toString() {
 	return std::string("do ") + this->body->toString() + " for " + this->iterations->toString() + " iterations";
 }
 TimedIterationNode::TimedIterationNode(Node* seconds, Node* body) {
-	this->seconds = new Node(*seconds);
-	this->body = new Node(*body);
+	this->seconds = seconds;
+	this->body = body;
 }
 void TimedIterationNode::clear() {
 	this->seconds->clear();
-	delete this->seconds;
 	this->body->clear();
-	delete this->body;
 }
 std::string TimedIterationNode::toString() {
 	return std::string("do ") + this->body->toString() + " for " + this->seconds->toString() + " seconds";
@@ -746,16 +662,13 @@ FunctionDefinitionNode::FunctionDefinitionNode(std::vector<Argument> arguments, 
 	this->arguments = arguments;
 	this->varNameToken = varNameToken;
 	this->returnType = returnType;
-	this->body = new Node(*body);
-	std::cout << "C\n";
+	this->body = body;
 }
 
 void FunctionDefinitionNode::clear() {
 	this->varNameToken.clear();
 	this->body->clear();
 	this->arguments.clear();
-	delete this->body;
-	std::cout << "B\n";
 }
 std::string FunctionDefinitionNode::toString() {
 	std::string args = "[ ";
@@ -777,7 +690,6 @@ FunctionCallNode::FunctionCallNode(std::vector<Node*> argumentsInOrder, Token va
 void FunctionCallNode::clear() {
 	for (int i = 0; i < this->argumentsInOrder.size(); i++) {
 		this->argumentsInOrder[i]->clear();
-		delete this->argumentsInOrder[i];
 	}
 	this->argumentsInOrder.clear();
 	this->varNameToken.clear();
@@ -798,14 +710,14 @@ std::string FunctionCallNode::toString() {
 ListNode::ListNode(std::vector<Node*> nodes) {
 	this->nodes.clear();
 	for (int i = 0; i < nodes.size(); i++) {
-		this->nodes.push_back(new Node(*nodes[i]));
+		this->nodes.push_back(nodes[i]);
 	}
 	this->mClass = Class::ListNode;
 }
 ListNode::ListNode(std::vector<Node*> nodes, bool b) {
 	this->nodes.clear();
 	for (int i = 0; i < nodes.size(); i++) {
-		this->nodes.push_back(new Node(*nodes[i], true));
+		this->nodes.push_back(nodes[i]);
 	}
 	this->mClass = Class::ListNode;
 }
@@ -814,11 +726,10 @@ ListNode::ListNode(ListNode* node) {
 	this->endPos = node->endPos;
 	for (int i = 0; i < this->nodes.size(); i++) {
 		this->nodes[i]->clear();
-		delete this->nodes[i];
 	}
 	this->nodes.clear();
 	for (int i = 0; i < node->nodes.size(); i++) {
-		this->nodes.push_back(new Node(*node->nodes[i]));
+		this->nodes.push_back(node->nodes[i]);
 	}
 	this->mClass = Class::ListNode;
 }
@@ -826,7 +737,7 @@ ListNode::ListNode(ListNode* node) {
 ArrayNode::ArrayNode(std::vector<Node*> nodes, Token type) {
 	this->type.clear();
 	for (int i = 0; i < nodes.size(); i++)
-		this->nodes.push_back(new Node(*nodes[i]));
+		this->nodes.push_back(nodes[i]);
 	this->type = type;
 	this->mClass = Class::ArrayNode;
 }
@@ -837,20 +748,18 @@ ArrayNode::ArrayNode(ArrayNode* node) {
 	this->endPos = node->type.endPos;
 	for (int i = 0; i < this->nodes.size(); i++) {
 		this->nodes[i]->clear();
-		delete this->nodes[i];
 	}
 	this->nodes.clear();
 	for (int i = 0; i < node->nodes.size(); i++)
-		this->nodes.push_back(new Node(*node->nodes[i]));
+		this->nodes.push_back(node->nodes[i]);
 	this->mClass = Class::ArrayNode;
 }
 
 ReturnNode::ReturnNode(Node* value) {
-	this->value = new Node(*value);
+	this->value = value;
 }
 void ReturnNode::clear() {
 	this->value->clear();
-	delete this->value;
 }
 std::string ReturnNode::toString() {
 	return "return " + this->value->toString();

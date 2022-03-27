@@ -34,13 +34,7 @@ public:
 
 	}
 
-	ParserResult success(Node& node) {
-		this->node.clear();
-		this->node = node;
-		return *this;
-	}
-
-	ParserResult success(Node&& node) {
+	ParserResult success(Node node) {
 		this->node.clear();
 		this->node = node;
 		return *this;
@@ -125,10 +119,8 @@ public:
 			statements.push_back(new Node(node));
 		}
 		REG_ADVANCE;
-		ListNode l = ListNode(statements);
-		for (int i = 0; i < statements.size(); i++) {
-			delete statements[i];
-		}
+		ListNode* l = new ListNode(statements);
+		allocationsToClear.push_back(l);
 		return result.success(l);
 	}
 
@@ -137,9 +129,12 @@ public:
 		if (this->currentToken.matches(TT_KEYWORD_RETURN)) {
 			ParserResult result = ParserResult();
 			REG_ADVANCE;
-			Node value = result.Register(this->expression(tok));
+			Node* value = new Node(result.Register(this->expression(tok)));
 			RET_ERROR;
-			return result.success(ReturnNode(&value));			
+			ReturnNode* node = new ReturnNode(value);
+			allocationsToClear.push_back(value);
+			allocationsToClear.push_back(node);
+			return result.success(node);			
 		}
 
 		return this->functionalExpression(tok);
@@ -147,60 +142,74 @@ public:
 
 	ParserResult functionalExpression(Token tok) {
 		ParserResult result = ParserResult();
-		Node body;
+		Node* body;
 		if (this->currentToken.matches(TT_KEYWORD_DO)) {
 			REG_ADVANCE;
 			if (!this->currentToken.matches(TT_L_CURLY_PAREN)) {
-				body = result.Register(this->returnableExpression(tok));
+				body = new Node(result.Register(this->returnableExpression(tok)));
 			}
 			else {
 				REG_ADVANCE;
-				body = result.Register(this->multiStatementExpression(tok, TT_R_CURLY_PAREN));
+				body = new Node(result.Register(this->multiStatementExpression(tok, TT_R_CURLY_PAREN)));
 			}
+			allocationsToClear.push_back(body);
 			RET_ERROR;
 			if (this->currentToken.matches(TT_KEYWORD_IF)) {
 				REG_ADVANCE;
-				Node condition = result.Register(this->expression(tok));
+				Node* condition = new Node(result.Register(this->expression(tok)));
+				allocationsToClear.push_back(condition);
 				RET_ERROR;
-				if (!this->currentToken.matches(TT_COMMA))
-					return result.success(IfNode(&condition, &body, nullptr));
+				if (!this->currentToken.matches(TT_COMMA)) {
+					IfNode* node = new IfNode(condition, body, nullptr);
+					allocationsToClear.push_back(node);
+					return result.success(node);
+				}
 				REG_ADVANCE;
 				RET_ERROR;
 				if (this->currentToken.matches(TT_KEYWORD_ELSE)) {
 					REG_ADVANCE;
-					Node elseStatement;
+					Node* elseStatement;
 					if (!this->currentToken.matches(TT_L_CURLY_PAREN)) {
 						if (!this->currentToken.matches(TT_KEYWORD_DO))
 							return result.failure(InvalidSyntaxError("Expected 'do'", this->currentToken.startPos, this->currentToken.endPos));
-						elseStatement = result.Register(this->returnableExpression(tok));
+						elseStatement = new Node(result.Register(this->returnableExpression(tok)));
+						allocationsToClear.push_back(elseStatement);
 					}
 					else {
 						REG_ADVANCE; 
 						if (!this->currentToken.matches(TT_KEYWORD_DO))
 							return result.failure(InvalidSyntaxError("Expected 'do'", this->currentToken.startPos, this->currentToken.endPos));
-						elseStatement = result.Register(this->multiStatementExpression(tok, TT_R_CURLY_PAREN));
+						elseStatement = new Node(result.Register(this->multiStatementExpression(tok, TT_R_CURLY_PAREN)));
 					}
-					return result.success(IfNode(&condition, &body, &elseStatement));
+					IfNode* node = new IfNode(condition, body, elseStatement);
+					allocationsToClear.push_back(node);
+					return result.success(node);
 				}
-				return result.success(IfNode(&condition, &body, nullptr));
+				IfNode* node = new IfNode(condition, body, nullptr);
+				allocationsToClear.push_back(node);
+				return result.success(node);
 			}			
 			if (this->currentToken.matches(TT_KEYWORD_FOR)) {
 				REG_ADVANCE;
-				Node amount = result.Register(this->expression(tok));
+				Node* amount = new Node(result.Register(this->expression(tok)));
+				allocationsToClear.push_back(amount);
 				RET_ERROR;
 				if (this->currentToken.matches(TT_KEYWORD_ITERATIONS)) {
 					REG_ADVANCE;
-					return result.success(IterationNode(&amount, &body));
+					IterationNode* node = new IterationNode(amount, body);
+					allocationsToClear.push_back(node);
+					return result.success(node);
 				}
 				if (this->currentToken.matches(TT_KEYWORD_SECONDS)) {
 					REG_ADVANCE;
-					return result.success(TimedIterationNode(&amount, &body));
+					TimedIterationNode* node = new TimedIterationNode(amount, body);
+					allocationsToClear.push_back(node);
+					return result.success(node);
 				}
 				return result.failure(InvalidSyntaxError("Expected 'iterations' or 'seconds'", this->currentToken.startPos, this->currentToken.endPos));
 			}
 
-
-			return result.success(body);
+			return result.success(*body);
 		}
 
 		return this->varChangingExpression(tok);
@@ -213,7 +222,8 @@ public:
 
 			if (this->currentToken.matches(TT_KEYWORD_INDEX)) {
 				REG_ADVANCE;
-				Node index = result.Register(this->expression(tok));
+				Node* index = new Node(result.Register(this->expression(tok)));
+				allocationsToClear.push_back(index);
 				RET_ERROR;
 				if (!this->currentToken.matches(TT_OF))
 					return result.failure(InvalidSyntaxError("Expected 'of'", this->currentToken.startPos, this->currentToken.endPos));
@@ -228,9 +238,12 @@ public:
 				if (!this->currentToken.matches(TT_TO))
 					return result.failure(InvalidSyntaxError("Expected 'to'", this->currentToken.startPos, this->currentToken.endPos));
 				REG_ADVANCE;
-				Node expression = result.Register(this->expression(tok));
+				Node* expression = new Node(result.Register(this->expression(tok)));
+				allocationsToClear.push_back(expression);
 				RET_ERROR;
-				return result.success(VarIndexReAssignNode(variableName, &expression, &index));
+				VarIndexReAssignNode* node = new VarIndexReAssignNode(variableName, expression, index);
+				allocationsToClear.push_back(node);
+				return result.success(node);
 			}
 
 			if (!this->currentToken.matches(TT_IDENTIFIER))
@@ -243,9 +256,12 @@ public:
 			if (!this->currentToken.matches(TT_TO))
 				return result.failure(InvalidSyntaxError("Expected 'to'", this->currentToken.startPos, this->currentToken.endPos));
 			REG_ADVANCE;
-			Node expression = result.Register(this->expression(tok));
+			Node* expression = new Node(result.Register(this->expression(tok)));
+			allocationsToClear.push_back(expression);
 			RET_ERROR;
-			return result.success(VarReAssignNode(variableName, &expression));
+			VarReAssignNode* node = new VarReAssignNode(variableName, expression);
+			allocationsToClear.push_back(node);
+			return result.success(node);
 		}
 		if (contains({ TT_SQUARE, TT_CUBE }, this->currentToken.type)) {
 			Token token = this->currentToken;
@@ -255,22 +271,37 @@ public:
 			Token variableName = this->currentToken;
 			REG_ADVANCE;
 			if (token.matches(TT_SQUARE)) {
-				Node n = VarAccessNode(variableName);
-				Node nm = NumberNode(Token(TT_INT, Value(Number(2))));
-				Node b = BinaryNode(Token(TT_POW), &n, &nm);
-				return result.success(VarReAssignNode(variableName, &b));
+				VarAccessNode* _n = new VarAccessNode(variableName);
+				NumberNode* _nm = new NumberNode(Token(TT_INT, Value(Number(2))));
+				Node* n = new Node(_n);
+				Node* nm = new Node(_nm);
+				BinaryNode* b = new BinaryNode(Token(TT_POW), n, nm);
+				allocationsToClear.push_back(_n);
+				allocationsToClear.push_back(_nm);
+				allocationsToClear.push_back(n);
+				allocationsToClear.push_back(nm);
+				allocationsToClear.push_back(b);
+				return result.success(b);
 			}
 			if (token.matches(TT_CUBE)) {
-				Node n = VarAccessNode(variableName);
-				Node nm = NumberNode(Token(TT_INT, Value(Number(3))));
-				Node b = BinaryNode(Token(TT_POW), &n, &nm);
-				return result.success(VarReAssignNode(variableName, &b));
+				VarAccessNode* _n = new VarAccessNode(variableName);
+				NumberNode* _nm = new NumberNode(Token(TT_INT, Value(Number(3))));
+				Node* n = new Node(_n);
+				Node* nm = new Node(_nm);
+				BinaryNode* b = new BinaryNode(Token(TT_POW), n, nm);
+				allocationsToClear.push_back(_n);
+				allocationsToClear.push_back(_nm);
+				allocationsToClear.push_back(n);
+				allocationsToClear.push_back(nm);
+				allocationsToClear.push_back(b);
+				return result.success(b);
 			}
 		}
 		if (contains({ TT_ADD, TT_SUB, TT_MULTIPLY, TT_DIVIDE }, this->currentToken.type)) {
 			Token token = this->currentToken;
 			REG_ADVANCE;
-			Node node = result.Register(this->expression(tok));
+			Node* node = new Node(result.Register(this->expression(tok)));
+			allocationsToClear.push_back(node);
 			RET_ERROR;
 			if (token.matches(TT_ADD))
 				if (!this->currentToken.matches(TT_TO))
@@ -294,24 +325,56 @@ public:
 			Token variableName = this->currentToken;
 			REG_ADVANCE;
 			if (token.matches(TT_ADD)) {
-				Node n = VarAccessNode(variableName);
-				Node b = BinaryNode(Token(TT_PLUS), &n, &node);
-				return result.success(VarReAssignNode(variableName, &b));
+				VarAccessNode* _n = new VarAccessNode(variableName);
+				Node* n = new Node(_n);
+				BinaryNode* b = new BinaryNode(Token(TT_PLUS), n, node);
+				Node* bn = new Node(b);
+				allocationsToClear.push_back(_n);
+				allocationsToClear.push_back(n);
+				allocationsToClear.push_back(b);
+				allocationsToClear.push_back(bn);
+				VarReAssignNode* node = new VarReAssignNode(variableName, bn);
+				allocationsToClear.push_back(node);
+				return result.success(node);
 			}
 			if (token.matches(TT_SUB)) {
-				Node n = VarAccessNode(variableName);
-				Node b = BinaryNode(Token(TT_MINUS), &n, &node);
-				return result.success(VarReAssignNode(variableName, &b));
+				VarAccessNode* _n = new VarAccessNode(variableName);
+				Node* n = new Node(_n);
+				BinaryNode* b = new BinaryNode(Token(TT_MINUS), n, node);
+				Node* bn = new Node(b);
+				allocationsToClear.push_back(_n);
+				allocationsToClear.push_back(n);
+				allocationsToClear.push_back(b);
+				allocationsToClear.push_back(bn);
+				VarReAssignNode* node = new VarReAssignNode(variableName, bn);
+				allocationsToClear.push_back(node);
+				return result.success(node);
 			}
 			if (token.matches(TT_MULTIPLY)) {
-				Node n = VarAccessNode(variableName);
-				Node b = BinaryNode(Token(TT_MULT), &n, &node);
-				return result.success(VarReAssignNode(variableName, &b));
+				VarAccessNode* _n = new VarAccessNode(variableName);
+				Node* n = new Node(_n);
+				BinaryNode* b = new BinaryNode(Token(TT_MULT), n, node);
+				Node* bn = new Node(b);
+				allocationsToClear.push_back(_n);
+				allocationsToClear.push_back(n);
+				allocationsToClear.push_back(b);
+				allocationsToClear.push_back(bn);
+				VarReAssignNode* node = new VarReAssignNode(variableName, bn);
+				allocationsToClear.push_back(node);
+				return result.success(node);
 			}
 			if (token.matches(TT_DIVIDE)) {
-				Node n = VarAccessNode(variableName);
-				Node b = BinaryNode(Token(TT_DIV), &n, &node);
-				return result.success(VarReAssignNode(variableName, &b));
+				VarAccessNode* _n = new VarAccessNode(variableName);
+				Node* n = new Node(_n);
+				BinaryNode* b = new BinaryNode(Token(TT_DIV), n, node);
+				Node* bn = new Node(b);
+				allocationsToClear.push_back(_n);
+				allocationsToClear.push_back(n);
+				allocationsToClear.push_back(b);
+				allocationsToClear.push_back(bn);
+				VarReAssignNode* node = new VarReAssignNode(variableName, bn);
+				allocationsToClear.push_back(node);
+				return result.success(node);
 			}
 		}
 		return this->varIntroducingExpression(tok);
@@ -332,9 +395,12 @@ public:
 				if (type == Value::valueType::Void)
 					return result.failure(InvalidSyntaxError("Can't create Void-variable", this->currentToken.startPos, this->currentToken.endPos));
 				REG_ADVANCE;
-				Node expression = result.Register(this->varIntroducingExpression(tok));
+				Node* expression = new Node(result.Register(this->varIntroducingExpression(tok)));
+				allocationsToClear.push_back(expression);
 				RET_ERROR;
-				return result.success(VarAssignNode(variableName, &expression, type));
+				VarAssignNode* n = new VarAssignNode(variableName, expression, type);
+				allocationsToClear.push_back(n);
+				return result.success(n);
 			}
 			REG_ADVANCE;
 			if (this->currentToken.matches(TT_NOTHING)) {
@@ -345,8 +411,11 @@ public:
 				if (!this->currentToken.matches(TT_L_CURLY_PAREN))
 					return result.failure(InvalidSyntaxError("Expected '{'", this->currentToken.startPos, this->currentToken.endPos));
 				REG_ADVANCE;
-				Node body = result.Register(this->multiStatementExpression(tok, TT_R_CURLY_PAREN));
-				return result.success(FunctionDefinitionNode({}, variableName, type, &body));
+				Node* body = new Node(result.Register(this->multiStatementExpression(tok, TT_R_CURLY_PAREN)));
+				allocationsToClear.push_back(body);
+				FunctionDefinitionNode* node = new FunctionDefinitionNode({}, variableName, type, body);
+				allocationsToClear.push_back(node);
+				return result.success(node);
 			}
 			else {
 				std::vector<Argument> arguments;
@@ -371,8 +440,11 @@ public:
 				if (!this->currentToken.matches(TT_L_CURLY_PAREN))
 					return result.failure(InvalidSyntaxError("Expected '{'", this->currentToken.startPos, this->currentToken.endPos));
 				REG_ADVANCE;
-				Node body = result.Register(this->multiStatementExpression(tok, TT_R_CURLY_PAREN));
-				return result.success(FunctionDefinitionNode(arguments, variableName, type, &body));
+				Node* body = new Node(result.Register(this->multiStatementExpression(tok, TT_R_CURLY_PAREN)));
+				allocationsToClear.push_back(body);
+				FunctionDefinitionNode* node = new FunctionDefinitionNode(arguments, variableName, type, body);
+				allocationsToClear.push_back(node);
+				return result.success(node);
 			}
 			return result.failure(InvalidSyntaxError("Expected 'nothing'", this->currentToken.startPos, this->currentToken.endPos));
 		}
@@ -394,9 +466,12 @@ public:
 			if (!this->currentToken.matches(TT_EQUALS))
 				return result.failure(InvalidSyntaxError("Expected 'equals'", this->currentToken.startPos, this->currentToken.endPos));
 			REG_ADVANCE;
-			Node expression = result.Register(this->varIntroducingExpression(tok));
+			Node* expression = new Node(result.Register(this->varIntroducingExpression(tok)));
+			allocationsToClear.push_back(expression);
 			RET_ERROR;
-			return result.success(VarAssignNode(variableName, &expression, Value::valueType::Array));
+			VarAssignNode* node = new VarAssignNode(variableName, expression, Value::valueType::Array);
+			allocationsToClear.push_back(node);
+			return result.success(node);
 		}
 		return this->expression(tok);
 	}
@@ -404,7 +479,8 @@ public:
 	ParserResult compareExpression(Token tok) {
 		ParserResult result = ParserResult();
 		Token opToken = null;
-		Node left = result.Register(this->normalExpression(tok));
+		Node* left = new Node(result.Register(this->normalExpression(tok)));
+		allocationsToClear.push_back(left);
 		RET_ERROR;
 		bool NOT = false;
 		if (this->currentToken.matches(TT_IS)) {
@@ -423,9 +499,12 @@ public:
 					return result.failure(InvalidSyntaxError("Expexted 'to'", this->currentToken.startPos, this->currentToken.endPos));
 				this->advance();
 				result.regAdvance();
-				Node right = result.Register(this->normalExpression(tok));
+				Node* right = new Node(result.Register(this->normalExpression(tok)));
+				allocationsToClear.push_back(right);
 				RET_ERROR;
-				return result.success(BinaryNode(opToken, &left, &right));
+				BinaryNode* node = new BinaryNode(opToken, left, right);
+				allocationsToClear.push_back(node);
+				return result.success(node);
 			}
 			if (this->currentToken.matches(TT_GREAT) || this->currentToken.matches(TT_SMALL)) {
 				opToken = Token(TT_EQUAL, Value(Bool(NOT)));
@@ -435,13 +514,16 @@ public:
 					return result.failure(InvalidSyntaxError("Expexted 'than'", this->currentToken.startPos, this->currentToken.endPos));
 				this->advance();
 				result.regAdvance();
-				Node right = result.Register(this->normalExpression(tok));
+				Node* right = new Node(result.Register(this->normalExpression(tok)));
+				allocationsToClear.push_back(right);
 				RET_ERROR;
-				return result.success(BinaryNode(opToken, &left, &right));
+				BinaryNode* node = new BinaryNode(opToken, left, right);
+				allocationsToClear.push_back(node);
+				return result.success(node);
 			}
 			return result.failure(InvalidSyntaxError("Expected ('not' followed by) 'equal to' or 'greater', 'smaller', 'greaterEqual' or 'smallerEqual' followed by 'than'", this->currentToken.startPos, this->currentToken.endPos));
 		}
-		return result.success(left);
+		return result.success(*left);
 	}
 
 	ParserResult normalExpression(Token tok) {
@@ -464,11 +546,14 @@ public:
 		if (token.matches(TT_PLUS) || token.matches(TT_MINUS)) {
 			this->advance();
 			result.regAdvance();
-			Node binOp = result.Register(this->term(tok));
+			Node* binOp = new Node(result.Register(this->term(tok)));
+			allocationsToClear.push_back(binOp);
 			RET_ERROR;
 			if (token.matches(TT_PLUS))
-				return result.success(binOp);
-			return result.success(UnaryNode(token, &binOp));
+				return result.success(*binOp);
+			UnaryNode* node = new UnaryNode(token, binOp);
+			allocationsToClear.push_back(node);
+			return result.success(node);
 		}
 		return this->binaryOperation("factor", { TT_MULT, TT_DIV }, false, tok);
 	}
@@ -479,34 +564,51 @@ public:
 
 	ParserResult atom(Token tok) {
 		ParserResult result = ParserResult();
-		Node left = Node(result.Register(this->nucleus(tok)));
+		Node* left = new Node(result.Register(this->nucleus(tok)));
+		allocationsToClear.push_back(left);
 		RET_ERROR;
 		while (this->currentToken.matches(TT_SQUARED) || this->currentToken.matches(TT_CUBED)) {
 			if (this->currentToken.matches(TT_SQUARED)) {
 				this->advance();
 				result.regAdvance();
-				Node n = Node(NumberNode(Token(TT_INT, Value(Number(2)), this->lastToken.startPos, this->currentToken.endPos)));
-				left = BinaryNode(Token(TT_POW), &left, &n);
+				NumberNode* nn = new NumberNode(Token(TT_INT, Value(Number(2)), this->lastToken.startPos, this->currentToken.endPos));
+				Node* n = new Node(nn);
+				BinaryNode* bn = new BinaryNode(Token(TT_POW), left, n);
+				allocationsToClear.push_back(nn);
+				allocationsToClear.push_back(n);
+				allocationsToClear.push_back(nn);
+				left = new Node(bn);
+				allocationsToClear.push_back(left);
 			}
 			if (this->currentToken.matches(TT_CUBED)) {
 				this->advance();
 				result.regAdvance();
-				Node n = Node(NumberNode(Token(TT_INT, Value(Number(3)), this->lastToken.startPos, this->currentToken.endPos)));
-				left = BinaryNode(Token(TT_POW), &left,&n);
+				NumberNode* nn = new NumberNode(Token(TT_INT, Value(Number(3)), this->lastToken.startPos, this->currentToken.endPos));
+				Node* n = new Node(nn);
+				BinaryNode* bn = new BinaryNode(Token(TT_POW), left, n);
+				allocationsToClear.push_back(nn);
+				allocationsToClear.push_back(n);
+				allocationsToClear.push_back(nn);
+				left = new Node(bn);
+				allocationsToClear.push_back(left);
 			}
 		}
-		return result.success(left);
+		return result.success(*left);
 	}
 
 	ParserResult nucleus(Token tok) {
 		ParserResult result = ParserResult();
-		Node node = result.Register(this->nucleon(tok));
+		Node* node = new Node(result.Register(this->nucleon(tok)));
+		allocationsToClear.push_back(node);
 		RET_ERROR;
 		while (this->currentToken.matches(TT_FAC)) {
-			REG_ADVANCE;
-			node = UnaryNode(Token(TT_FAC), &node);
+			REG_ADVANCE; 
+			UnaryNode* bn = new UnaryNode(Token(TT_FAC), node);
+			node = new Node(bn);
+			allocationsToClear.push_back(bn);
+			allocationsToClear.push_back(node);
 		}
-		return result.success(node);
+		return result.success(*node);
 	}
 
 	ParserResult nucleon(Token tok) {
@@ -527,10 +629,14 @@ public:
 					RET_ERROR;
 					looped = true;
 				}
-				REG_ADVANCE;
-				return result.success(FunctionCallNode(arguments, token));
+				REG_ADVANCE; 
+				FunctionCallNode* node = new FunctionCallNode(arguments, token);
+				allocationsToClear.push_back(node);
+				return result.success(node);
 			}
-			else return result.success(VarAccessNode(token));
+			VarAccessNode* node = new VarAccessNode(token);
+			allocationsToClear.push_back(node);
+			return result.success(node);
 		}
 		if (token.matches(TT_KEYWORD_TYPEOF)) {
 			this->advance();
@@ -540,22 +646,36 @@ public:
 			token = this->currentToken;
 			this->advance();
 			result.regAdvance();
-			return result.success(TypeNode(token));
+			TypeNode* node = new TypeNode(token);
+			allocationsToClear.push_back(node);
+			return result.success(node);
 		}
 		if (token.matches(TT_INT) || token.matches(TT_DOUBLE)) {
 			this->advance();
 			result.regAdvance();
-			return result.success(Node(NumberNode(token)));
+			NumberNode* nn = new NumberNode(token);
+			Node* node = new Node(nn);
+			allocationsToClear.push_back(node);
+			allocationsToClear.push_back(nn);
+			return result.success(*node);
 		}
 		if (token.matches(TT_STRING)) {
 			this->advance();
 			result.regAdvance();
-			return result.success(StringNode(token));
+			StringNode* sn = new StringNode(token);
+			Node* node = new Node(sn);
+			allocationsToClear.push_back(node);
+			allocationsToClear.push_back(sn);
+			return result.success(*node);
 		}
 		if (token.matches(TT_BOOLEAN)) {
 			this->advance();
 			result.regAdvance();
-			return result.success(BooleanNode(token));
+			BooleanNode* bn = new BooleanNode(token);
+			Node* node = new Node(bn);
+			allocationsToClear.push_back(node);
+			allocationsToClear.push_back(bn);
+			return result.success(*node);
 		}
 		if (token.matches(TT_L_SQUARE_PAREN)) {
 			std::vector<Node*> nodes;
@@ -573,7 +693,9 @@ public:
 			}
 			this->advance();
 			result.regAdvance();
-			return result.success(ArrayNode(nodes, token));
+			ArrayNode* an = new ArrayNode(nodes, token);
+			allocationsToClear.push_back(an);
+			return result.success(an);
 		}
 		if (token.matches(TT_L_PAREN)) {
 			this->advance();
@@ -591,7 +713,7 @@ public:
 		}
 		if (token.matches(TT_KEYWORD_INDEX)) {
 			REG_ADVANCE;
-			Node index = result.Register(this->expression(tok));
+			Node* index = new Node(result.Register(this->expression(tok)));
 			RET_ERROR;
 			if (!this->currentToken.matches(TT_OF))
 				return result.failure(InvalidSyntaxError("Expected 'of'", this->currentToken.startPos, this->currentToken.endPos));
@@ -600,22 +722,26 @@ public:
 				return result.failure(InvalidSyntaxError("Expected identifier", this->currentToken.startPos, this->currentToken.endPos));
 			Token variableName = this->currentToken;
 			REG_ADVANCE;
-			return result.success(VarIndexAccessNode(variableName, &index));
+			VarIndexAccessNode* node = new VarIndexAccessNode(variableName, index);
+			allocationsToClear.push_back(node);
+			return result.success(node);
 
 		}
 		return result.failure(InvalidSyntaxError("Expected int, float, string, boolean, identifier, '+', '-' or '('", this->currentToken.startPos, this->currentToken.endPos));
 	}
 
 	ParserResult binaryOperation(std::string function, std::vector<TokenType> operators, std::string function2, bool required, Token tok) {
-		Node left = Node();
+		Node* left = new Node();
+		allocationsToClear.push_back(left);
 		ParserResult result = ParserResult();
-		if (function == "compareExpression") left = result.Register(this->compareExpression(tok));
-		if (function == "normalExpression") left = result.Register(this->normalExpression(tok));
-		if (function == "expression") left = result.Register(this->expression(tok));
-		if (function == "term") left = result.Register(this->term(tok));
-		if (function == "factor") left = result.Register(this->factor(tok));
-		if (function == "atom") left = result.Register(this->atom(tok));
-		if (function == "nucleus") left = result.Register(this->nucleus(tok));
+		if (function == "compareExpression") left = new Node(result.Register(this->compareExpression(tok)));
+		if (function == "normalExpression") left = new Node(result.Register(this->normalExpression(tok)));
+		if (function == "expression") left = new Node(result.Register(this->expression(tok)));
+		if (function == "term") left = new Node(result.Register(this->term(tok)));
+		if (function == "factor") left = new Node(result.Register(this->factor(tok)));
+		if (function == "atom") left = new Node(result.Register(this->atom(tok)));
+		if (function == "nucleus") left = new Node(result.Register(this->nucleus(tok)));
+		allocationsToClear.push_back(left);
 		RET_ERROR;
 
 		int adv = 0;
@@ -624,19 +750,24 @@ public:
 			this->advance();
 			result.regAdvance();
 			adv++;
-			Node right;
-			if (function2 == "compareExpression") right = result.Register(this->compareExpression(tok));
-			if (function2 == "normalExpression") right = result.Register(this->normalExpression(tok));
-			if (function2 == "expression") right = result.Register(this->expression(tok));
-			if (function2 == "term") right = result.Register(this->term(tok));
-			if (function2 == "factor") right = result.Register(this->factor(tok));
-			if (function2 == "atom") right = result.Register(this->atom(tok));
-			if (function2 == "nucleus") right = result.Register(this->nucleus(tok));
+			Node* right = new Node();
+			allocationsToClear.push_back(right);
+			if (function2 == "compareExpression") right = new Node(result.Register(this->compareExpression(tok)));
+			if (function2 == "normalExpression") right = new Node(result.Register(this->normalExpression(tok)));
+			if (function2 == "expression") right = new Node(result.Register(this->expression(tok)));
+			if (function2 == "term") right = new Node(result.Register(this->term(tok)));
+			if (function2 == "factor") right = new Node(result.Register(this->factor(tok)));
+			if (function2 == "atom") right = new Node(result.Register(this->atom(tok)));
+			if (function2 == "nucleus") right = new Node(result.Register(this->nucleus(tok)));
+			allocationsToClear.push_back(right);
 			RET_ERROR;
-			left = BinaryNode(opToken, &left, &right);
+			BinaryNode* bn = new BinaryNode(opToken, left, right);
+			left = new Node(bn);
+			allocationsToClear.push_back(left);
+			allocationsToClear.push_back(bn);
 		}
 		if (adv == 0 && required);
-		return result.success(left);
+		return result.success(*left);
 	}
 
 	

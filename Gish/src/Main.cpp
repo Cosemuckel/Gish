@@ -8,6 +8,8 @@
 #include <map>
 #include <chrono>
 
+std::vector<void*> allocationsToClear;
+
 #include "ExitCodes.h"
 #include "Functions.h"
 
@@ -65,6 +67,7 @@ int main() {
 		parserResult.clear();
 		runtimeResult.clear();
 		freeLast();
+		std::cout << Interpreter::context.functionTable.symbols["v"].toString() << "\n";
 		// Interpreter::context.functionTable.clear();
 	}
 	system("pause");
