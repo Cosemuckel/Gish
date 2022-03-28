@@ -67,7 +67,10 @@ int main() {
 		parserResult.clear();
 		runtimeResult.clear();
 		freeLast();
-		std::cout << Interpreter::context.functionTable.symbols["v"].toString() << "\n";
+		for (int i = 0; i < allocationsToClear.size(); i++) {
+			delete allocationsToClear[i];
+		}
+		allocationsToClear.clear();
 		// Interpreter::context.functionTable.clear();
 	}
 	system("pause");

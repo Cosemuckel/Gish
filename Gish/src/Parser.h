@@ -107,7 +107,7 @@ public:
 			REG_ADVANCE;
 		}
 		while (!this->currentToken.matches(endOfExpression)) {
-			Node node = result.Register(this->returnableExpression(tok));
+			Node node = result.Register(this->unusableExpression(tok));
 			RET_ERROR;
 			bool s = false;
 			while (this->currentToken.matches(TT_SEMICOLON)) {
@@ -115,8 +115,10 @@ public:
 				s = true;
 			}
 			if (!s)
-				return result.failure(InvalidSyntaxError(" Missing a ';'" + this->currentToken.toString(), this->currentToken.startPos, this->currentToken.endPos));
-			statements.push_back(new Node(node));
+				return result.failure(InvalidSyntaxError("Missing a ';'" + this->currentToken.toString(), this->currentToken.startPos, this->currentToken.endPos));
+			Node* rNode = new Node(node);
+			allocationsToClear.push_back(rNode);
+			statements.push_back(rNode);
 		}
 		REG_ADVANCE;
 		ListNode* l = new ListNode(statements);
@@ -124,8 +126,7 @@ public:
 		return result.success(l);
 	}
 
-	ParserResult returnableExpression(Token tok) {
-
+	ParserResult unusableExpression(Token tok) {
 		if (this->currentToken.matches(TT_KEYWORD_RETURN)) {
 			ParserResult result = ParserResult();
 			REG_ADVANCE;
@@ -135,6 +136,27 @@ public:
 			allocationsToClear.push_back(value);
 			allocationsToClear.push_back(node);
 			return result.success(node);			
+		}
+		if (this->currentToken.matches(TT_KEYWORD_UNDEFINE)) {
+			ParserResult result = ParserResult();
+			REG_ADVANCE;
+			if (!this->currentToken.matches(TT_THE))
+				return result.failure(InvalidSyntaxError("Expexted 'the'" + this->currentToken.toString(), this->currentToken.startPos, this->currentToken.endPos));
+			REG_ADVANCE;
+			bool type = false;
+			if (this->currentToken.matches(TT_KEYWORD_VARIABLE))
+				type = false;
+			else if (this->currentToken.matches(TT_KEYWORD_FUNCTION))
+				type = true;
+			else return result.failure(InvalidSyntaxError("Expexted 'variable' or 'function'" + this->currentToken.toString(), this->currentToken.startPos, this->currentToken.endPos));
+			REG_ADVANCE;
+			if (!this->currentToken.matches(TT_IDENTIFIER))
+				result.failure(InvalidSyntaxError("Expexted identifier" + this->currentToken.toString(), this->currentToken.startPos, this->currentToken.endPos));
+			Token varNameToken = this->currentToken;
+			REG_ADVANCE;
+			UndefineNode* node = new UndefineNode(type, varNameToken);
+			allocationsToClear.push_back(node);
+			return result.success(node);
 		}
 
 		return this->functionalExpression(tok);
@@ -146,7 +168,7 @@ public:
 		if (this->currentToken.matches(TT_KEYWORD_DO)) {
 			REG_ADVANCE;
 			if (!this->currentToken.matches(TT_L_CURLY_PAREN)) {
-				body = new Node(result.Register(this->returnableExpression(tok)));
+				body = new Node(result.Register(this->unusableExpression(tok)));
 			}
 			else {
 				REG_ADVANCE;
@@ -172,7 +194,7 @@ public:
 					if (!this->currentToken.matches(TT_L_CURLY_PAREN)) {
 						if (!this->currentToken.matches(TT_KEYWORD_DO))
 							return result.failure(InvalidSyntaxError("Expected 'do'", this->currentToken.startPos, this->currentToken.endPos));
-						elseStatement = new Node(result.Register(this->returnableExpression(tok)));
+						elseStatement = new Node(result.Register(this->unusableExpression(tok)));
 						allocationsToClear.push_back(elseStatement);
 					}
 					else {
@@ -180,6 +202,7 @@ public:
 						if (!this->currentToken.matches(TT_KEYWORD_DO))
 							return result.failure(InvalidSyntaxError("Expected 'do'", this->currentToken.startPos, this->currentToken.endPos));
 						elseStatement = new Node(result.Register(this->multiStatementExpression(tok, TT_R_CURLY_PAREN)));
+						allocationsToClear.push_back(elseStatement);
 					}
 					IfNode* node = new IfNode(condition, body, elseStatement);
 					allocationsToClear.push_back(node);

@@ -85,7 +85,6 @@ public:
 		return this->type.aClass == tokenType.aClass && this->type.type == tokenType.type;
 	}
 
-
 	void clear() {
 		this->type.clear();
 		this->value.clear();
@@ -309,7 +308,10 @@ public:
 		else if (string == "times")   tokenType = TT_KEYWORD_TIMES;
 		else if (string == "seconds") tokenType = TT_KEYWORD_SECONDS;
 
-		else if (string == "typeof") tokenType = TT_KEYWORD_TYPEOF;
+		else if (string == "typeof")   tokenType = TT_KEYWORD_TYPEOF;
+		else if (string == "undefine") tokenType = TT_KEYWORD_UNDEFINE;
+		else if (string == "variable") tokenType = TT_KEYWORD_VARIABLE;
+		else if (string == "function") tokenType = TT_KEYWORD_FUNCTION;
 
 		else if (string == "String")  tokenType = TT_KEYWORD_STRING;
 		else if (string == "Number")  tokenType = TT_KEYWORD_NUMBER;

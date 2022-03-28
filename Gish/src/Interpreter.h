@@ -206,8 +206,10 @@ class Function : public Object {
 public:
 	std::string Name;
 	Node body;
+	Value::valueType returnType;
 	std::vector<Argument> arguments;
 	Interpreter* mInterpreter;
+	std::vector<void*> mAllocations;
 
 	RuntimeResult execute(std::vector<InterpretedValue> arguments);
 
@@ -216,14 +218,15 @@ public:
 	}
 
 	Function(const Function& function) 
-		:Function(function.Name, function.body, function.arguments, function.mInterpreter) {
+		:Function(function.Name, function.body, function.arguments, function.returnType, function.mInterpreter) {
 	}
 
-	Function(std::string Name, Node body, std::vector<Argument> arguments, Interpreter* mInterpreter) {
+	Function(std::string Name, Node body, std::vector<Argument> arguments, Value::valueType returnType, Interpreter* mInterpreter) {
 		this->Name = Name;
-		this->body = Node(body);
+		this->body = Node(body, mAllocations, true);
 		this->arguments = arguments;
 		this->mInterpreter = mInterpreter;
+		this->returnType = returnType;
 	}
 
 	std::string toString() {
@@ -232,6 +235,9 @@ public:
 
 	void clear() {
 		this->arguments.clear();
+		for (int i = 0; i < this->mAllocations.size(); i++) {
+			delete mAllocations[i];
+		}
 	}
 	
 	nullCMP;
@@ -293,15 +299,16 @@ public:
 			value = this->symbols.at(key);
 		}
 		catch (std::out_of_range) {
-			value = null;
+			return Function(null);
 		}
 		return value;
 	}
 
-	void set(std::string name, Function value) {
+	void set(std::string name, Function& value) {
 		this->symbols.insert_or_assign(name, Function(value));
 	}
 	void remove(std::string name) {
+		this->symbols[name].clear();
 		this->symbols.erase(name);
 	}
 
@@ -362,6 +369,7 @@ public:
 		case Class::FunctionDefinitionNode: return this->visitFunctionDefinitionNode(*(FunctionDefinitionNode*)node.nodePtr, context, inFunction);
 		case Class::FunctionCallNode: return this->visitFunctionCallNode(*(FunctionCallNode*)node.nodePtr, context, inFunction);
 		case Class::ReturnNode: return this->visitReturnNode(*(ReturnNode*)node.nodePtr, context, inFunction);
+		case Class::UndefineNode: return this->visitUndefineNode(*(UndefineNode*)node.nodePtr, context, inFunction);
 		default:
 			return RuntimeResult({}, null);
 		}
@@ -465,7 +473,6 @@ public:
 		InterpretedValue value = result.Register(this->visit(*node.value, context, inFunction));
 		RET_ERROR;
 		RET_RET;
-		std::cout << "AHA\n";
 		if (context.symbolTable.get(variableName) == null)
 			return result.failure(RuntimeError(std::string("'") + variableName + "' is not defined", node.startPos, node.endPos));
 		if (value.type != context.symbolTable.get(variableName).type)
@@ -596,10 +603,13 @@ public:
 		RuntimeResult result = RuntimeResult();
 
 		std::string functionName = node.varNameToken.value.cString;
-		Node functionBody = Node(*node.body);
+
+		if (context.functionTable.get(functionName) != null)
+			return result.failure(RuntimeError(std::string("'") + functionName + "' is already defined", node.startPos, node.endPos));
+
 		std::vector<Argument> functionArguments = node.arguments;
 
-		Function function = Function(functionName, functionBody, functionArguments, this);
+		Function function = Function(functionName, *node.body, functionArguments, node.returnType, this);
 		context.functionTable.set(functionName, function);
 		return result.success(null);
 	}
@@ -628,6 +638,22 @@ public:
 		RET_ERROR;
 		return result.success(returnValue).shouldReturn();
 	}
+	
+	RuntimeResult visitUndefineNode(UndefineNode node, Context& context, bool inFunction) {
+		RuntimeResult result = RuntimeResult();
+
+		if (!node.type) {
+			if (context.symbolTable.get(node.varNameToken.value.cString) == null)
+				return result.failure(RuntimeError(std::string("'") + node.varNameToken.value.cString + "' is not defined", node.startPos, node.endPos));
+			context.symbolTable.remove(node.varNameToken.value.cString);
+		}
+		else {
+			if (context.functionTable.get(node.varNameToken.value.cString) == null)
+				return result.failure(RuntimeError(std::string("'") + node.varNameToken.value.cString + "' is not defined", node.startPos, node.endPos));
+			context.functionTable.remove(node.varNameToken.value.cString);
+		}
+		return result.success(null);
+	}
 
 
 };
@@ -639,11 +665,9 @@ RuntimeResult Function::execute(std::vector<InterpretedValue> arguments) {
 	Context context = mInterpreter->context;
 	Context newContext;
 	newContext.symbolTable.parentTable = &context.symbolTable;
+
 	if (arguments.size() == 0 && this->arguments.size() != 0)
 		return result.failure(RuntimeError("Too few arguments for function call", Position(), Position()));
-
-	std::cout << arguments.size() << " : " << this->arguments.size() << "\n";
-
 	if (arguments.size() < this->arguments.size())
 		return result.failure(RuntimeError("Too few arguments for function call", arguments[arguments.size() - 1].startPos, Position(arguments[arguments.size() - 1].endPos).advance(0)));
 	if (arguments.size() > this->arguments.size())
@@ -652,8 +676,10 @@ RuntimeResult Function::execute(std::vector<InterpretedValue> arguments) {
 		newContext.symbolTable.set(this->arguments[i].Name, arguments[i]);
 	}
 
-	std::cout << this->body.toString() << "<<\n";
 	InterpretedValue returnedResult = result.Register(mInterpreter->visit(this->body, newContext, true));
+	RET_ERROR;
+	if (!result.m_shouldReturn && this->returnType != Value::valueType::Void)
+		return result.failure(RuntimeError("'" + this->Name + "' must return a value", returnedResult.startPos, returnedResult.endPos));
 	RET_ERROR;
 
 	return result.success(returnedResult);

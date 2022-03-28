@@ -82,6 +82,7 @@ enum class Class {
 	FunctionDefinitionNode,
 	FunctionCallNode,
 	ReturnNode,
+	UndefineNode,
 	ParserResult,
 	Parser
 };
