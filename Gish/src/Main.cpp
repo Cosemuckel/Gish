@@ -23,6 +23,8 @@ std::vector<void*> allocationsToClear;
 
 int main() {
 
+	bool disableOutput = false;
+
 	while (1) {
 		printf("gish >> ");
 		std::string s = stdcin();
@@ -36,33 +38,52 @@ int main() {
 					exit(EXIT_SUCCES_USER_FORCED_FROM_INPUT);
 				else if (s[2] == 'f')
 					s = stdfin("text.txt");
+				else if (s[2] == 'd') {
+					disableOutput = disableOutput ? false : true;
+					continue;
+				}
 				else if (s[2] == 'b')
 					break;
 		if (s.empty())
 			continue;
 
+
 		Position::fileCode = s;
 		Position::fileName = "<stdin>";
+
+		printf("\n");
+
 		LexerResult lexerResult = Lexer(s).lex();
-		std::cout << "\n" << lexerResult.toString() << "\n\n";
+		if (!disableOutput || lexerResult.error != null)
+			std::cout << "\n" << lexerResult.toString() << "\n\n";
 		if (lexerResult.error != null) {
 			lexerResult.clear();
 			continue;
 		}
+
 		CommenterResult commenterResult = Commenter(lexerResult.tokens).comment();
-		std::cout << "\n" << commenterResult.toString() << "\n\n";
+		if (!disableOutput)
+			std::cout << "\n" << commenterResult.toString() << "\n\n";
+
 		ParserResult parserResult = Parser(commenterResult.tokens).parse();
-		std::cout << "\n" << parserResult.toString() << "\n\n";
+		if (!disableOutput || parserResult.error != null)
+			std::cout << "\n" << parserResult.toString() << "\n\n";
 		if (parserResult.error != null) {
 			parserResult.clear();
 			continue;
 		}
+
 		RuntimeResult runtimeResult = Interpreter().run(&parserResult.node);
-		std::cout << "\n" << runtimeResult.toString() << "\n\n";
+		if(!disableOutput || runtimeResult.error != null)
+			std::cout << "\n" << runtimeResult.toString(true) << "\n\n";;
 		if (runtimeResult.error != null) {
 			runtimeResult.clear();
 			continue;
 		}
+
+		if (disableOutput)
+			printf("\n\n");
+
 		lexerResult.clear();
 		parserResult.clear();
 		runtimeResult.clear();

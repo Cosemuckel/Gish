@@ -1,5 +1,42 @@
 
+//Turns a String into an Int
+Number numberValue taking String s: {
+	
+	Number result equals 0;
 
+	Number it equals 0;
+	do {
+		
+		multiply result with 10;
+
+		do add 0 to result if character it of s is equal to "0",
+		else do add 1 to result if character it of s is equal to "1",
+		else do add 2 to result if character it of s is equal to "2",
+		else do add 3 to result if character it of s is equal to "3",
+		else do add 4 to result if character it of s is equal to "4",
+		else do add 5 to result if character it of s is equal to "5",
+		else do add 6 to result if character it of s is equal to "6",
+		else do add 7 to result if character it of s is equal to "7",
+		else do add 8 to result if character it of s is equal to "8",
+		else do add 9 to result if character it of s is equal to "9",
+		else return result;
+
+		add 1 to it;
+	} for lenght of s iterations;
+
+}
+
+//stdcin()
+String s equals input from the console;
+
+//"\n\n\n\n"
+print a newline;
+print a newline;
+print a newline;
+print a newline;
+
+
+print numberValue(s);
 
 
 

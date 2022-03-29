@@ -137,6 +137,33 @@ public:
 			allocationsToClear.push_back(node);
 			return result.success(node);			
 		}
+		if (this->currentToken.matches(TT_PRINT)) {
+			ParserResult result = ParserResult();
+			REG_ADVANCE;
+			bool nl = false;
+			if (this->currentToken.matches(TT_WITH)) {
+				REG_ADVANCE;
+				if (!this->currentToken.matches(TT_KEYWORD_NEWLINE))
+					return result.failure(InvalidSyntaxError("Expexted 'newline'" + this->currentToken.toString(), this->currentToken.startPos, this->currentToken.endPos));
+				REG_ADVANCE;
+				nl = true;
+			}
+			if (this->currentToken.matches(TT_A)) {
+				REG_ADVANCE;
+				if (!this->currentToken.matches(TT_KEYWORD_NEWLINE))
+					return result.failure(InvalidSyntaxError("Expexted 'newline'" + this->currentToken.toString(), this->currentToken.startPos, this->currentToken.endPos));
+				REG_ADVANCE;
+				PrintNode* node = new PrintNode(nullptr, true);
+				allocationsToClear.push_back(node);
+				return result.success(node);
+			}
+			Node* value = new Node(result.Register(this->expression(tok)));
+			RET_ERROR;
+			PrintNode* node = new PrintNode(value, nl);
+			allocationsToClear.push_back(value);
+			allocationsToClear.push_back(node);
+			return result.success(node);			
+		}
 		if (this->currentToken.matches(TT_KEYWORD_UNDEFINE)) {
 			ParserResult result = ParserResult();
 			REG_ADVANCE;
@@ -333,10 +360,6 @@ public:
 			else if (token.matches(TT_SUB))
 				if (!this->currentToken.matches(TT_FROM))
 					return result.failure(InvalidSyntaxError("Expected 'from'", this->currentToken.startPos, this->currentToken.endPos));
-				else;
-			else if (token.matches(TT_MULTIPLY) || token.matches(TT_DIVIDE))
-				if (!this->currentToken.matches(TT_BY))
-					return result.failure(InvalidSyntaxError("Expected 'by'", this->currentToken.startPos, this->currentToken.endPos));
 				else;
 			else if (token.matches(TT_MULTIPLY) || token.matches(TT_DIVIDE))
 				if (!this->currentToken.matches(TT_BY))
@@ -730,7 +753,6 @@ public:
 				result.regAdvance();
 				return result.success(node);
 			}
-			std::cout << this->currentToken.toString();
 			return result.failure(InvalidSyntaxError("Expected ')'", this->currentToken.startPos, this->currentToken.endPos));
 
 		}
@@ -749,6 +771,21 @@ public:
 			allocationsToClear.push_back(node);
 			return result.success(node);
 
+		}
+		if (token.matches(TT_KEYWORD_INPUT)) {
+			REG_ADVANCE;
+			if (!this->currentToken.matches(TT_FROM))
+				return result.failure(InvalidSyntaxError("Expected 'from'", this->currentToken.startPos, this->currentToken.endPos));
+			REG_ADVANCE;
+			if (!this->currentToken.matches(TT_THE))
+				return result.failure(InvalidSyntaxError("Expected 'the'", this->currentToken.startPos, this->currentToken.endPos));
+			REG_ADVANCE;
+			if (!this->currentToken.matches(TT_KEYWORD_CONSOLE))
+				return result.failure(InvalidSyntaxError("Expected 'console'", this->currentToken.startPos, this->currentToken.endPos));
+			REG_ADVANCE;
+			InputNode* node = new InputNode();
+			allocationsToClear.push_back(node);
+			return result.success(node);
 		}
 		return result.failure(InvalidSyntaxError("Expected int, float, string, boolean, identifier, '+', '-' or '('", this->currentToken.startPos, this->currentToken.endPos));
 	}

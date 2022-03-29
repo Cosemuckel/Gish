@@ -46,6 +46,9 @@ public:
 	std::string toString() {
 		return Value::toString();
 	}
+	std::string toString(bool) {
+		return Value::toString(true);
+	}
 
 	InterpretedValue addedTo(InterpretedValue value) {
 		if (this->type == Value::valueType::Number) {
@@ -133,6 +136,7 @@ public:
 	InterpretedValue nullCon;
 };
 
+#define RET_RETA(value)  if (result.m_shouldReturn) return result.success(value);
 #define RET_RET  if (result.m_shouldReturn) return result;
 
 class RuntimeResult : public Result {
@@ -169,6 +173,11 @@ public:
 	}
 
 
+	std::string toString(bool) {
+		if (this->error != null)
+			return this->error.toString();
+		return this->result.cVector[this->result.cVector.size() - 1].toString();
+	}
 
 	void clear();
 	std::string toString();
@@ -199,6 +208,7 @@ std::string RuntimeResult::toString() {
 		return this->error.toString();
 	return this->result.toString();
 }
+
 
 class Interpreter;
 
@@ -370,6 +380,8 @@ public:
 		case Class::FunctionCallNode: return this->visitFunctionCallNode(*(FunctionCallNode*)node.nodePtr, context, inFunction);
 		case Class::ReturnNode: return this->visitReturnNode(*(ReturnNode*)node.nodePtr, context, inFunction);
 		case Class::UndefineNode: return this->visitUndefineNode(*(UndefineNode*)node.nodePtr, context, inFunction);
+		case Class::PrintNode: return this->visitPrintNode(*(PrintNode*)node.nodePtr, context, inFunction);
+		case Class::InputNode: return this->visitInputNode(*(InputNode*)node.nodePtr, context, inFunction);
 		default:
 			return RuntimeResult({}, null);
 		}
@@ -380,17 +392,19 @@ public:
 		RuntimeResult result = RuntimeResult();
 		std::vector<Value> results;
 		for (Node* element : node.nodes) {
-			InterpretedValue v = InterpretedValue(result.Register(this->visit(*element, context, inFunction)));
+			RuntimeResult r = this->visit(*element, context, inFunction);
+			InterpretedValue v = InterpretedValue(result.Register(r));
 			RET_ERROR;
-			RET_RET;
+			RET_RETA(v);
 			results.push_back(v);
 		}
-		return result.success(InterpretedValue(results));
+		InterpretedValue data = InterpretedValue(results);
+		return result.success(data);
 	}
 
 	RuntimeResult visitNumberNode(NumberNode node, Context& context, bool inFunction) {
 		return RuntimeResult().success(InterpretedValue(node.token.value));
-	}
+	} 
 
 	RuntimeResult visitStringNode(StringNode node, Context& context, bool inFunction) {
 		return RuntimeResult().success(InterpretedValue(node.token.value));
@@ -406,7 +420,7 @@ public:
 		for (Node* element : node.nodes) {
 			InterpretedValue v = InterpretedValue(result.Register(this->visit(*element, context, inFunction)));
 			RET_ERROR;
-			RET_RET;
+			RET_RETA(v);
 			results.push_back(v);
 		}
 		return result.success(InterpretedValue((results)));
@@ -427,7 +441,7 @@ public:
 		RuntimeResult result = RuntimeResult();
 		InterpretedValue left = result.Register(this->visit(*node.leftNode, context, inFunction));
 		RET_ERROR;
-		RET_RET;
+		RET_RETA(left);
 		InterpretedValue right = result.Register(this->visit(*node.rightNode, context, inFunction));
 
 		if (node.opToken.matches(TT_PLUS))
@@ -458,7 +472,7 @@ public:
 		std::string variableName = node.varNameToken.value.cString;
 		InterpretedValue value = result.Register(this->visit(*node.value, context, inFunction));
 		RET_ERROR;
-		RET_RET;
+		RET_RETA(value);
 		if (context.symbolTable.get(variableName) != null)
 			return result.failure(RuntimeError(std::string("'") + variableName + "' is already defined", node.startPos, node.endPos));
 		if (node.type != value.type)
@@ -472,7 +486,7 @@ public:
 		std::string variableName = node.varNameToken.value.cString;
 		InterpretedValue value = result.Register(this->visit(*node.value, context, inFunction));
 		RET_ERROR;
-		RET_RET;
+		RET_RETA(value);
 		if (context.symbolTable.get(variableName) == null)
 			return result.failure(RuntimeError(std::string("'") + variableName + "' is not defined", node.startPos, node.endPos));
 		if (value.type != context.symbolTable.get(variableName).type)
@@ -497,7 +511,7 @@ public:
 			return result.failure(RuntimeError("Can't read index '" + index.toString() + "' of '" + variableName + "' : index is out of range", node.startPos, node.endPos));
 		InterpretedValue value = result.Register(this->visit(*node.value, context, inFunction));
 		RET_ERROR;
-		RET_RET;
+		RET_RETA(value);
 		context.symbolTable.symbols[variableName].cVector[(long long)index.cNumber.value] = InterpretedValue(value);
 		return result.success(value);
 	}
@@ -540,12 +554,12 @@ public:
 				else {
 					InterpretedValue returnValue = result.Register(this->visit(*node.elseStatement, context, inFunction));
 					RET_ERROR;
-					RET_RET;
+					RET_RETA(returnValue);
 					return result.success(returnValue);
 				}
 			InterpretedValue returnValue = result.Register(this->visit(*node.body, context, inFunction));
 			RET_ERROR;
-			RET_RET;
+			RET_RETA(returnValue);
 			return result.success(returnValue);
 		}
 		return result.failure(RuntimeError("If-Condition is not of type Boolean", node.startPos, node.endPos));
@@ -563,12 +577,12 @@ public:
 				if (i == iterations - 1) {
 					last = result.Register(this->visit(*node.body, context, inFunction));
 					RET_ERROR;
-					RET_RET;
+					RET_RETA(last);
 				}
 				else {
 					result.Register(this->visit(*node.body, context, inFunction));
 					RET_ERROR;
-					RET_RET;
+					RET_RETA(last);
 				}
 			}
 			return last;
@@ -589,7 +603,7 @@ public:
 			while (true) {
 				last = result.Register(this->visit(*node.body, context, inFunction));
 				RET_ERROR;
-				RET_RET;
+				RET_RETA(last);
 				if (std::chrono::steady_clock::now() - start > std::chrono::seconds(seconds))
 					break;
 			}
@@ -618,6 +632,9 @@ public:
 		RuntimeResult result = RuntimeResult();		
 		std::vector<InterpretedValue> arguments;
 
+		if (context.functionTable.get(node.varNameToken.value.cString) == null)
+			return result.failure(RuntimeError(std::string("'") + node.varNameToken.value.cString + "' is not defined", node.startPos, node.endPos));
+
 		for (int i = 0; i < node.argumentsInOrder.size(); i++) {
 			arguments.push_back(result.Register(this->visit(*node.argumentsInOrder[i], context, inFunction)));
 			RET_ERROR;
@@ -626,7 +643,7 @@ public:
 
 		InterpretedValue returnedValue = result.Register(context.functionTable.get(node.varNameToken.value.cString).execute(arguments));
 		RET_ERROR;
-		RET_RET;
+		RET_RETA(returnedValue);
 		return result.success(returnedValue);
 	}
 
@@ -635,7 +652,7 @@ public:
 		if (!inFunction)
 			return result.failure(RuntimeError("Can't return a value outside of a function", node.startPos, node.endPos));
 		InterpretedValue returnValue = result.Register(this->visit(*node.value, context, inFunction));
-		RET_ERROR;
+		RET_RETA(returnValue);
 		return result.success(returnValue).shouldReturn();
 	}
 	
@@ -655,6 +672,29 @@ public:
 		return result.success(null);
 	}
 
+	RuntimeResult visitPrintNode(PrintNode node, Context& context, bool inFuntion) {
+		RuntimeResult result = RuntimeResult();
+
+		if (node.object == nullptr) {
+			std::cout << "\n";
+			return result.success(InterpretedValue(std::string("newline")));
+		}
+
+		InterpretedValue valueToPrint = result.Register(this->visit(*node.object, context, inFuntion));
+
+		if (node.printLine)
+			std::cout << valueToPrint.toString(true) << "\n";
+		else std::cout << valueToPrint.toString(true);
+		return result.success(valueToPrint);
+	}
+	
+	RuntimeResult visitInputNode(InputNode node, Context& context, bool inFuntion) {
+		RuntimeResult result = RuntimeResult();
+
+		std::string string = stdcin();
+
+		return result.success(InterpretedValue(string));
+	}
 
 };
 
@@ -676,11 +716,14 @@ RuntimeResult Function::execute(std::vector<InterpretedValue> arguments) {
 		newContext.symbolTable.set(this->arguments[i].Name, arguments[i]);
 	}
 
-	InterpretedValue returnedResult = result.Register(mInterpreter->visit(this->body, newContext, true));
+	RuntimeResult rtResult = mInterpreter->visit(this->body, newContext, true);
+	InterpretedValue returnedResult = result.Register(rtResult);
+
 	RET_ERROR;
 	if (!result.m_shouldReturn && this->returnType != Value::valueType::Void)
 		return result.failure(RuntimeError("'" + this->Name + "' must return a value", returnedResult.startPos, returnedResult.endPos));
 	RET_ERROR;
 
+	result.m_shouldReturn = false;
 	return result.success(returnedResult);
 }

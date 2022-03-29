@@ -37,6 +37,8 @@ TokenType TT_OF   ("HELP", "OF");
 TokenType TT_FROM ("HELP", "FROM");
 TokenType TT_THE  ("HELP", "THE");
 TokenType TT_TYPE ("HELP", "TYPE");
+TokenType TT_WITH ("HELP", "WITH");
+TokenType TT_A    ("HELP", "A");
 
 TokenType TT_IDENTIFIER ("NAME", "IDENTIFIER");
 
@@ -44,7 +46,14 @@ TokenType TT_KEYWORD_INDEX        ("KEY", "INDEX");
 TokenType TT_KEYWORD_SIZEOF       ("KEY", "SIZEOF");
 TokenType TT_KEYWORD_ITERATIONS   ("KEY", "ITERATIONS");
 
+TokenType TT_KEYWORD_NEWLINE ("KEY", "NEWLINE");
+TokenType TT_KEYWORD_CONSOLE ("KEY", "CONSOLE");
+TokenType TT_KEYWORD_INPUT   ("KEY", "INPUT");
+
 TokenType TT_KEYWORD_RETURN ("KEY", "RETURN");
+
+TokenType TT_PRINT ("KEY", "PRINT");
+TokenType TT_SCAN  ("KEY", "SCAN");
 
 TokenType TT_KEYWORD_IF      ("KEY", "IF");
 TokenType TT_KEYWORD_ELSE    ("KEY", "ELSE");

@@ -287,10 +287,18 @@ public:
 
 		else if (string == "return")        tokenType = TT_KEYWORD_RETURN;
 
+		else if (string == "print")   tokenType = TT_PRINT;
+		else if (string == "scan")    tokenType = TT_SCAN;
+
 		else if (string == "index")        tokenType = TT_KEYWORD_INDEX;
 		else if (string == "sizeof")       tokenType = TT_KEYWORD_SIZEOF;
 		else if (string == "iterations")   tokenType = TT_KEYWORD_ITERATIONS;
 
+		else if (string == "newline")   tokenType = TT_KEYWORD_NEWLINE;
+		else if (string == "console")   tokenType = TT_KEYWORD_CONSOLE;
+		else if (string == "input")     tokenType = TT_KEYWORD_INPUT;
+
+		else if (string == "with") tokenType = TT_WITH;
 		else if (string == "is")   tokenType = TT_IS;
 		else if (string == "than") tokenType = TT_THAN;
 		else if (string == "to")   tokenType = TT_TO;
@@ -299,6 +307,7 @@ public:
 		else if (string == "from") tokenType = TT_FROM;
 		else if (string == "the")  tokenType = TT_THE;
 		else if (string == "type") tokenType = TT_TYPE;
+		else if (string == "a")    tokenType = TT_A;
 
 		else if (string == "if")      tokenType = TT_KEYWORD_IF;
 		else if (string == "else")    tokenType = TT_KEYWORD_ELSE;

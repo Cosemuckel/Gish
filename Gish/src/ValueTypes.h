@@ -83,6 +83,9 @@ enum class Class {
 	FunctionCallNode,
 	ReturnNode,
 	UndefineNode,
+	PrintNode,
+	InputNode,
+	InterruptionNode
 	ParserResult,
 	Parser
 };
@@ -343,6 +346,20 @@ public:
 		case valueType::Bool: return this->cBool.toString(); break;
 		case valueType::Number:return this->cNumber.toString(); break;
 		case valueType::String: return '"' + this->cString + '"'; break;
+		case valueType::Array: { std::string s = "[ "; int i = 0; for (Value v : this->cVector) { s += v.toString(); if (i < this->cVector.size() - 1) s += ", "; i++; } return s + " ]"; break;
+		}
+		case valueType::Null: return "Null";
+		default:
+			break;
+		}
+	}
+
+	std::string toString(bool) {
+		switch (this->type)
+		{
+		case valueType::Bool: return this->cBool.toString(); break;
+		case valueType::Number:return this->cNumber.toString(); break;
+		case valueType::String: return this->cString; break;
 		case valueType::Array: { std::string s = "[ "; int i = 0; for (Value v : this->cVector) { s += v.toString(); if (i < this->cVector.size() - 1) s += ", "; i++; } return s + " ]"; break;
 		}
 		case valueType::Null: return "Null";

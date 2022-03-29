@@ -374,6 +374,43 @@ public:
 
 };
 
+class PrintNode : public BaseNode {
+public:
+
+	Node* object;
+	bool printLine = false;
+
+	std::string toString();
+	void clear();
+	PrintNode(Node* object, bool printLine, std::vector<void*>& allocationTable, bool passOn);
+	PrintNode(Node* object, bool printLine);
+	PrintNode(const PrintNode& node, std::vector<void*>& allocationTable, bool passOn);
+};
+
+class InputNode : public BaseNode {
+public:
+
+	std::string toString() {
+		return "ConsoleInput";
+	}
+	void clear(){}
+};
+
+class InterruptionNode : public BaseNode {
+public:
+
+	short type; //0 => continue; 1 => break
+
+	InterruptionNode(short type) {
+		this->type = type;
+	}
+	std::string toString() {
+		return type == 0 ? "Continue" : "Break";
+	}
+	void clear() {}
+
+};
+
 class Node : public Object {
 public:
 	void* nodePtr = nullptr;
@@ -402,6 +439,9 @@ public:
 		case Class::FunctionDefinitionNode: ((FunctionDefinitionNode*)this->nodePtr)->clear(); break;
 		case Class::FunctionCallNode: ((FunctionCallNode*)this->nodePtr)->clear(); break;
 		case Class::ReturnNode: ((ReturnNode*)this->nodePtr)->clear(); break;
+		case Class::PrintNode: ((PrintNode*)this->nodePtr)->clear(); break;
+		case Class::InputNode: ((InputNode*)this->nodePtr)->clear(); break;
+		case Class::InterruptionNode: ((InterruptionNode*)this->nodePtr)->clear(); break;
 		}
 	}
 
@@ -429,6 +469,9 @@ public:
 			case Class::FunctionCallNode: this->nodePtr = new FunctionCallNode(*(FunctionCallNode*)node.nodePtr, allocationTable, true); break;
 			case Class::ReturnNode: this->nodePtr = new ReturnNode(*(ReturnNode*)node.nodePtr, allocationTable, true); break;
 			case Class::UndefineNode: this->nodePtr = new UndefineNode(*(UndefineNode*)node.nodePtr); break;
+			case Class::PrintNode: this->nodePtr = new PrintNode(*(PrintNode*)node.nodePtr); break;
+			case Class::InputNode: this->nodePtr = new InputNode(*(InputNode*)node.nodePtr); break;
+			case Class::InterruptionNode: this->nodePtr = new InterruptionNode(*(InterruptionNode*)node.nodePtr); break;
 			}
 		}
 		else {
@@ -453,6 +496,9 @@ public:
 			case Class::FunctionCallNode: this->nodePtr = new FunctionCallNode(*(FunctionCallNode*)node.nodePtr); break;
 			case Class::ReturnNode: this->nodePtr = new ReturnNode(*(ReturnNode*)node.nodePtr); break;
 			case Class::UndefineNode: this->nodePtr = new UndefineNode(*(UndefineNode*)node.nodePtr); break;
+			case Class::PrintNode: this->nodePtr = new PrintNode(*(PrintNode*)node.nodePtr); break;
+			case Class::InputNode: this->nodePtr = new InputNode(*(InputNode*)node.nodePtr); break;
+			case Class::InterruptionNode: this->nodePtr = new InterruptionNode(*(InterruptionNode*)node.nodePtr); break;
 			}
 		}
 		allocationTable.push_back(this->nodePtr);
@@ -547,6 +593,18 @@ public:
 		this->nodePtr = node;
 		this->type = Class::UndefineNode;
 	}
+	Node(PrintNode* node) {
+		this->nodePtr = node;
+		this->type = Class::PrintNode;
+	}
+	Node(InputNode* node) {
+		this->nodePtr = node;
+		this->type = Class::InputNode;
+	}
+	Node(InterruptionNode* node) {
+		this->nodePtr = node;
+		this->type = Class::InterruptionNode;
+	}
 	std::string toString() {
 		switch (this->type) {
 		case Class::NumberNode: return ((NumberNode*)this->nodePtr)->toString(); break;
@@ -569,6 +627,9 @@ public:
 		case Class::FunctionCallNode: return ((FunctionCallNode*)this->nodePtr)->toString(); break;
 		case Class::ReturnNode: return ((ReturnNode*)this->nodePtr)->toString(); break;
 		case Class::UndefineNode: return ((UndefineNode*)this->nodePtr)->toString(); break;
+		case Class::PrintNode: return ((PrintNode*)this->nodePtr)->toString(); break;
+		case Class::InputNode: return ((InputNode*)this->nodePtr)->toString(); break;
+		case Class::InterruptionNode: return ((InterruptionNode*)this->nodePtr)->toString(); break;
 		default:
 			return "Null";
 		}
@@ -1059,4 +1120,31 @@ void ReturnNode::clear() {
 }
 std::string ReturnNode::toString() {
 	return "return " + this->value->toString();
+}
+
+PrintNode::PrintNode(Node* object, bool printLine) {
+	this->object = object;
+	this->printLine = printLine;
+	this->mClass = Class::ReturnNode;
+}
+PrintNode::PrintNode(Node* value, bool printLine, std::vector<void*>& allocationTable, bool passOn) {
+	this->object = new Node(*value, allocationTable, passOn);
+	this->printLine = printLine;
+	allocationTable.push_back(this->object);
+	this->mClass = Class::ReturnNode;
+}
+PrintNode::PrintNode(const PrintNode& node, std::vector<void*>& allocationTable, bool passOn) {
+	this->object = new Node(*node.object, allocationTable, passOn);
+	allocationTable.push_back(this->object);
+	this->mClass = Class::ReturnNode;
+
+}
+void PrintNode::clear() {
+	if (this->object != nullptr)
+	this->object->clear();
+}
+std::string PrintNode::toString() {
+	if (this->object == nullptr)
+		return "print a newline";
+	return "print " + this->object->toString();
 }

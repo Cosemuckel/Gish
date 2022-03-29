@@ -54,4 +54,7 @@
   <ItemGroup>
     <Text Include="text.txt" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="Todo.md" />
+  </ItemGroup>
 </Project>
