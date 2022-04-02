@@ -1,4 +1,7 @@
 
+
+
+
 //Turns a String into an Int
 Number numberValue taking String s: {
 	
@@ -19,12 +22,14 @@ Number numberValue taking String s: {
 		else do add 7 to result if character it of s is equal to "7",
 		else do add 8 to result if character it of s is equal to "8",
 		else do add 9 to result if character it of s is equal to "9",
-		else return result;
+		else do return result;
 
 		add 1 to it;
-	} for lenght of s iterations;
+	} for sizeof s iterations;
 
-}
+	return result;
+
+};
 
 //stdcin()
 String s equals input from the console;
@@ -37,7 +42,4 @@ print a newline;
 
 
 print numberValue(s);
-
-
-
 

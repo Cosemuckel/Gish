@@ -55,10 +55,14 @@ public:
 				this->advance();
 				if (this->currentToken.matches(TT_DIV)) {
 					this->advance();
+					while (!this->currentToken.matches(TT_NEWLINE) && !this->currentToken.matches(TT_EOF))
+						this->advance();
+					continue;
 				}
-				while (!this->currentToken.matches(TT_NEWLINE) && !this->currentToken.matches(TT_EOF))
+				else {
+					this->index -= 2;
 					this->advance();
-				continue;
+				};
 			}
 			if (this->currentToken.matches(TT_NEWLINE)) {
 				this->advance();

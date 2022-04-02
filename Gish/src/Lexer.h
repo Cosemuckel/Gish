@@ -291,12 +291,16 @@ public:
 		else if (string == "scan")    tokenType = TT_SCAN;
 
 		else if (string == "index")        tokenType = TT_KEYWORD_INDEX;
+		else if (string == "character")    tokenType = TT_KEYWORD_CHARACTER;
 		else if (string == "sizeof")       tokenType = TT_KEYWORD_SIZEOF;
 		else if (string == "iterations")   tokenType = TT_KEYWORD_ITERATIONS;
 
 		else if (string == "newline")   tokenType = TT_KEYWORD_NEWLINE;
 		else if (string == "console")   tokenType = TT_KEYWORD_CONSOLE;
 		else if (string == "input")     tokenType = TT_KEYWORD_INPUT;
+
+		else if (string == "continue")  tokenType = TT_KEYWORD_CONTINUE;
+		else if (string == "break")     tokenType = TT_KEYWORD_BREAK;
 
 		else if (string == "with") tokenType = TT_WITH;
 		else if (string == "is")   tokenType = TT_IS;
@@ -308,6 +312,9 @@ public:
 		else if (string == "the")  tokenType = TT_THE;
 		else if (string == "type") tokenType = TT_TYPE;
 		else if (string == "a")    tokenType = TT_A;
+
+		else if (string == "or")    tokenType = TT_OR;
+		else if (string == "and")    tokenType = TT_AND;
 
 		else if (string == "if")      tokenType = TT_KEYWORD_IF;
 		else if (string == "else")    tokenType = TT_KEYWORD_ELSE;

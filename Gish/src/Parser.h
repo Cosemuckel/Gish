@@ -194,7 +194,13 @@ public:
 		Node* body;
 		if (this->currentToken.matches(TT_KEYWORD_DO)) {
 			REG_ADVANCE;
-			if (!this->currentToken.matches(TT_L_CURLY_PAREN)) {
+			if (this->currentToken.matches(TT_NOTHING)) {
+				REG_ADVANCE;
+				ListNode* node = new ListNode({});
+				allocationsToClear.push_back(node);
+				body = new Node(node);
+			}
+			else if (!this->currentToken.matches(TT_L_CURLY_PAREN)) {
 				body = new Node(result.Register(this->unusableExpression(tok)));
 			}
 			else {
@@ -350,9 +356,19 @@ public:
 		if (contains({ TT_ADD, TT_SUB, TT_MULTIPLY, TT_DIVIDE }, this->currentToken.type)) {
 			Token token = this->currentToken;
 			REG_ADVANCE;
-			Node* node = new Node(result.Register(this->expression(tok)));
-			allocationsToClear.push_back(node);
-			RET_ERROR;
+			Token variableName = null;
+			Node* node = nullptr;
+			if (token.matches(TT_ADD) || token.matches(TT_SUB)) {
+				node =  new Node(result.Register(this->expression(tok)));
+				allocationsToClear.push_back(node);
+				RET_ERROR;
+			}
+			else if (!this->currentToken.matches(TT_IDENTIFIER))
+				return result.failure(InvalidSyntaxError("Expected identifier", this->currentToken.startPos, this->currentToken.endPos));
+			else {
+				variableName = this->currentToken;
+				REG_ADVANCE;
+			}
 			if (token.matches(TT_ADD))
 				if (!this->currentToken.matches(TT_TO))
 					return result.failure(InvalidSyntaxError("Expected 'to'", this->currentToken.startPos, this->currentToken.endPos));
@@ -361,15 +377,26 @@ public:
 				if (!this->currentToken.matches(TT_FROM))
 					return result.failure(InvalidSyntaxError("Expected 'from'", this->currentToken.startPos, this->currentToken.endPos));
 				else;
-			else if (token.matches(TT_MULTIPLY) || token.matches(TT_DIVIDE))
+			else if (token.matches(TT_MULTIPLY))
+				if (!this->currentToken.matches(TT_WITH))
+					return result.failure(InvalidSyntaxError("Expected 'with'", this->currentToken.startPos, this->currentToken.endPos));
+				else;
+			else if (token.matches(TT_DIVIDE))
 				if (!this->currentToken.matches(TT_BY))
 					return result.failure(InvalidSyntaxError("Expected 'by'", this->currentToken.startPos, this->currentToken.endPos));
 				else;
 			REG_ADVANCE;
-			if (!this->currentToken.matches(TT_IDENTIFIER))
+			if (token.matches(TT_MULTIPLY) || token.matches(TT_DIVIDE)) {
+				node = new Node(result.Register(this->expression(tok)));
+				allocationsToClear.push_back(node);
+				RET_ERROR;
+			}
+			else if (!this->currentToken.matches(TT_IDENTIFIER))
 				return result.failure(InvalidSyntaxError("Expected identifier", this->currentToken.startPos, this->currentToken.endPos));
-			Token variableName = this->currentToken;
-			REG_ADVANCE;
+			else {
+				variableName = this->currentToken;
+				REG_ADVANCE;
+			}
 			if (token.matches(TT_ADD)) {
 				VarAccessNode* _n = new VarAccessNode(variableName);
 				Node* n = new Node(_n);
@@ -553,16 +580,25 @@ public:
 				return result.success(node);
 			}
 			if (this->currentToken.matches(TT_GREAT) || this->currentToken.matches(TT_SMALL)) {
-				opToken = Token(TT_EQUAL, Value(Bool(NOT)));
-				this->advance();
-				result.regAdvance();
-				if (!this->currentToken.matches(TT_THAN))
+				Token token = this->currentToken;
+				REG_ADVANCE;
+				bool orEqual = false;
+				if (this->currentToken.matches(TT_OR)) {
+					REG_ADVANCE;
+					if (!this->currentToken.matches(TT_EQUAL))
+						return result.failure(InvalidSyntaxError("Expexted 'equal'", this->currentToken.startPos, this->currentToken.endPos));
+					orEqual = true;
+					REG_ADVANCE;
+				}
+				if (!this->currentToken.matches(TT_THAN) && !orEqual)
 					return result.failure(InvalidSyntaxError("Expexted 'than'", this->currentToken.startPos, this->currentToken.endPos));
-				this->advance();
-				result.regAdvance();
+				if (!this->currentToken.matches(TT_TO) && orEqual)
+					return result.failure(InvalidSyntaxError("Expexted 'to'", this->currentToken.startPos, this->currentToken.endPos));
+				REG_ADVANCE;
 				Node* right = new Node(result.Register(this->normalExpression(tok)));
 				allocationsToClear.push_back(right);
 				RET_ERROR;
+				opToken = orEqual ? token.matches(TT_GREAT) ? Token(TT_GREAT_EQ, Value(Bool(NOT))) : Token(TT_SMALL_EQ, Value(Bool(NOT))) : token.matches(TT_GREAT) ? Token(TT_GREAT, Value(Bool(NOT))) : Token(TT_SMALL, Value(Bool(NOT)));
 				BinaryNode* node = new BinaryNode(opToken, left, right);
 				allocationsToClear.push_back(node);
 				return result.success(node);
@@ -581,6 +617,15 @@ public:
 
 	ParserResult expression(Token tok) {
 		ParserResult result = ParserResult();
+
+		if (this->currentToken.matches(TT_KEYWORD_BREAK) || this->currentToken.matches(TT_KEYWORD_CONTINUE)) {
+			short t = this->currentToken.matches(TT_KEYWORD_CONTINUE) ? 0 : 1;
+			REG_ADVANCE;
+			Node node = Node(new InterruptionNode(t));
+			allocationsToClear.push_back(node.nodePtr);
+			return result.success(node);
+		}
+
 		Node node = result.Register(this->binaryOperation("compareExpression", { TT_AND, TT_OR }, false, tok));
 		RET_ERROR;
 		return result.success(node);
@@ -684,7 +729,7 @@ public:
 			allocationsToClear.push_back(node);
 			return result.success(node);
 		}
-		if (token.matches(TT_KEYWORD_TYPEOF)) {
+		if (token.matches(TT_KEYWORD_TYPEOF) || token.matches(TT_KEYWORD_SIZEOF)) {
 			this->advance();
 			result.regAdvance();
 			if (!this->currentToken.matches(TT_IDENTIFIER))
@@ -692,7 +737,7 @@ public:
 			token = this->currentToken;
 			this->advance();
 			result.regAdvance();
-			TypeNode* node = new TypeNode(token);
+			PropertyNode* node = new PropertyNode(token, !token.matches(TT_KEYWORD_TYPEOF));
 			allocationsToClear.push_back(node);
 			return result.success(node);
 		}
@@ -756,7 +801,7 @@ public:
 			return result.failure(InvalidSyntaxError("Expected ')'", this->currentToken.startPos, this->currentToken.endPos));
 
 		}
-		if (token.matches(TT_KEYWORD_INDEX)) {
+		if (token.matches(TT_KEYWORD_INDEX) || token.matches(TT_KEYWORD_CHARACTER)) {
 			REG_ADVANCE;
 			Node* index = new Node(result.Register(this->expression(tok)));
 			RET_ERROR;
@@ -767,7 +812,7 @@ public:
 				return result.failure(InvalidSyntaxError("Expected identifier", this->currentToken.startPos, this->currentToken.endPos));
 			Token variableName = this->currentToken;
 			REG_ADVANCE;
-			VarIndexAccessNode* node = new VarIndexAccessNode(variableName, index);
+			VarIndexAccessNode* node = new VarIndexAccessNode(variableName, index, !token.matches(TT_KEYWORD_INDEX));
 			allocationsToClear.push_back(node);
 			return result.success(node);
 

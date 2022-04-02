@@ -122,14 +122,49 @@ public:
 		}
 		return InterpretedValue(InterpretedValue(null), RuntimeError(std::string("Can't factorialize a ") + this->Name(), startPos, endPos));
 	}
-	InterpretedValue equalTo(InterpretedValue value) {
-		if (this->type == Value::valueType::Number) {
-			if (this->cNumber.type && value.cNumber.type)
-				return InterpretedValue(Bool((double)this->cNumber.value == (double)value.cNumber.value), null);
-			if (!this->cNumber.type && !value.cNumber.type)
-				return InterpretedValue(Bool((long long)this->cNumber.value == (long long)value.cNumber.value), null);
-		}
+	InterpretedValue equalTo(InterpretedValue value, bool invert) {
+		if (!invert)
+			if (this->type == Value::valueType::Number && value.type == Value::valueType::Number)
+				return InterpretedValue(Bool(this->cNumber.equals(value.cNumber)), Error(null));
+			else if (this->type == Value::valueType::String && value.type == Value::valueType::String)
+				return InterpretedValue(Bool(this->cString == value.cString), Error(null));
+			else if (this->type == Value::valueType::Bool && value.type == Value::valueType::Bool)
+				return InterpretedValue(Bool(this->cBool.value == value.cBool.value), Error(null));
+			else return InterpretedValue(InterpretedValue(null), RuntimeError(std::string("Can't compare a ") + this->Name() + " to a " + value.Name(), startPos, endPos));
+		else
+			if (this->type == Value::valueType::Number && value.type == Value::valueType::Number)
+				return InterpretedValue(Bool(!this->cNumber.equals(value.cNumber)), Error(null));
+			else if (this->type == Value::valueType::String && value.type == Value::valueType::String)
+				return InterpretedValue(Bool(this->cString != value.cString), Error(null));
+			else if (this->type == Value::valueType::Bool && value.type == Value::valueType::Bool)
+				return InterpretedValue(Bool(!this->cBool.value == value.cBool.value), Error(null));
+			else return InterpretedValue(InterpretedValue(null), RuntimeError(std::string("Can't compare a ") + this->Name() + " to a " + value.Name(), startPos, endPos));
+		return InterpretedValue(Bool(false), Error(null));
 	}
+	InterpretedValue greaterThan(InterpretedValue value, bool orEqual, bool invert) {
+		if (!invert)
+			if (this->type == Value::valueType::Number && value.type == Value::valueType::Number)
+				return InterpretedValue(Bool(this->cNumber.greaterThan(value.cNumber)), Error(null));
+			else return InterpretedValue(InterpretedValue(null), RuntimeError(std::string("Can't compare a ") + this->Name() + " to a " + value.Name(), startPos, endPos));
+		else
+			if (this->type == Value::valueType::Number && value.type == Value::valueType::Number)
+				return InterpretedValue(Bool(!this->cNumber.greaterThan(value.cNumber)), Error(null));
+			else return InterpretedValue(InterpretedValue(null), RuntimeError(std::string("Can't compare a ") + this->Name() + " to a " + value.Name(), startPos, endPos));
+		return InterpretedValue(Bool(false), Error(null));
+	}
+	InterpretedValue smallerThan(InterpretedValue value, bool orEqual, bool invert) {
+		if (!invert)
+			if (this->type == Value::valueType::Number && value.type == Value::valueType::Number)
+				return InterpretedValue(Bool(this->cNumber.lessThan(value.cNumber)), Error(null));
+			else return InterpretedValue(InterpretedValue(null), RuntimeError(std::string("Can't compare a ") + this->Name() + " to a " + value.Name(), startPos, endPos));
+		else
+			if (this->type == Value::valueType::Number && value.type == Value::valueType::Number)
+				return InterpretedValue(Bool(!this->cNumber.lessThan(value.cNumber)), Error(null));
+			else return InterpretedValue(InterpretedValue(null), RuntimeError(std::string("Can't compare a ") + this->Name() + " to a " + value.Name(), startPos, endPos));
+		return InterpretedValue(Bool(false), Error(null));
+	}
+
+
 
 	nullCMP;
 	InterpretedValue nullEQ;
@@ -144,6 +179,8 @@ public:
 
 	InterpretedValue result;
 	bool m_shouldReturn = false;
+	bool m_break = false;
+	bool m_continue = false;
 
 	RuntimeResult(InterpretedValue result, Error error);
 	RuntimeResult(InterpretedValue result);
@@ -176,7 +213,9 @@ public:
 	std::string toString(bool) {
 		if (this->error != null)
 			return this->error.toString();
-		return this->result.cVector[this->result.cVector.size() - 1].toString();
+		if (this->result.cVector.size() > 0)
+			return this->result.cVector[this->result.cVector.size() - 1].toString();
+		return "";
 	}
 
 	void clear();
@@ -365,7 +404,7 @@ public:
 		case Class::StringNode: return this->visitStringNode(*(StringNode*)node.nodePtr, context, inFunction);
 		case Class::ArrayNode: return this->visitArrayNode(*(ArrayNode*)node.nodePtr, context, inFunction);
 		case Class::ListNode: return this->visitListNode(*(ListNode*)node.nodePtr, context, inFunction);
-		case Class::TypeNode: return this->visitTypeNode(*(TypeNode*)node.nodePtr, context, inFunction);
+		case Class::PropertyNode: return this->visitPropertyNode(*(PropertyNode*)node.nodePtr, context, inFunction);
 		case Class::UnaryNode: return this->visitUnaryNode(*(UnaryNode*)node.nodePtr, context, inFunction);
 		case Class::BinaryNode: return this->visitBinaryNode(*(BinaryNode*)node.nodePtr, context, inFunction);
 		case Class::VarAccessNode: return this->visitVarAccessNode(*(VarAccessNode*)node.nodePtr, context, inFunction);
@@ -382,6 +421,7 @@ public:
 		case Class::UndefineNode: return this->visitUndefineNode(*(UndefineNode*)node.nodePtr, context, inFunction);
 		case Class::PrintNode: return this->visitPrintNode(*(PrintNode*)node.nodePtr, context, inFunction);
 		case Class::InputNode: return this->visitInputNode(*(InputNode*)node.nodePtr, context, inFunction);
+		case Class::InterruptionNode: return this->visitInterruptionNode(*(InterruptionNode*)node.nodePtr, context, inFunction);
 		default:
 			return RuntimeResult({}, null);
 		}
@@ -455,16 +495,28 @@ public:
 		if (node.opToken.matches(TT_POW))
 			return RuntimeResult(left.raisedTo(right));
 		if (node.opToken.matches(TT_EQUAL))
-			return RuntimeResult(left.equalTo(right));
+			return RuntimeResult(left.equalTo(right, node.opToken.value.cBool.value));
+		if (node.opToken.matches(TT_SMALL))
+			return RuntimeResult(left.smallerThan(right, false, node.opToken.value.cBool.value));
+		if (node.opToken.matches(TT_GREAT))
+			return RuntimeResult(left.greaterThan(right, false, node.opToken.value.cBool.value));
+		if (node.opToken.matches(TT_SMALL_EQ))
+			return RuntimeResult(left.smallerThan(right, true, node.opToken.value.cBool.value));
+		if (node.opToken.matches(TT_GREAT_EQ))
+			return RuntimeResult(left.greaterThan(right, true, node.opToken.value.cBool.value));
 	}
 
-	RuntimeResult visitTypeNode(TypeNode node, Context& context, bool inFunction) {
+	RuntimeResult visitPropertyNode(PropertyNode node, Context& context, bool inFunction) {
 		RuntimeResult result = RuntimeResult();
 		std::string variableName = node.varNameToken.value.cString;
 		InterpretedValue variable = context.symbolTable.get(variableName);
 		if (variable == null)
 			return result.failure(RuntimeError(std::string("'") + variableName + "' is not defined", node.startPos, node.endPos));
-		return result.success(InterpretedValue(variable.Name()));
+		if (!node.type)
+			return result.success(InterpretedValue(variable.Name()));
+		if (variable.type != Value::valueType::Array && variable.type != Value::valueType::String)
+			return result.failure(RuntimeError(std::string("Can't get the size of a '") + variableName + "'", node.startPos, node.endPos));
+		return variable.type == Value::valueType::Array ? result.success(InterpretedValue(Number((long long)variable.cVector.size()))) : result.success(InterpretedValue(Number((long long)variable.cString.size())));
 	}
 
 	RuntimeResult visitVarAssignNode(VarAssignNode node, Context& context, bool inFunction) {
@@ -531,16 +583,24 @@ public:
 		InterpretedValue variable = context.symbolTable.get(variableName);
 		if (variable == null)
 			return result.failure(RuntimeError(std::string("'") + variableName + "' is not defined", node.startPos, node.endPos));
-		if (variable.type != Value::valueType::Array)
+		if (variable.type != Value::valueType::Array && node.type == 0)
 			return result.failure(RuntimeError(std::string("'") + variableName + "' is not of Array type", node.startPos, node.endPos));
+		if (variable.type != Value::valueType::String && node.type == 1)
+			return result.failure(RuntimeError(std::string("'") + variableName + "' is not of String type", node.startPos, node.endPos));
 		InterpretedValue index = result.Register(this->visit(*node.index, context, inFunction));
 		if (index.type != Value::valueType::Number)
 			return result.failure(RuntimeError("Can't read index '" + index.toString() + "' of '" + variableName + "' : index is of wrong type", node.startPos, node.endPos));
 		if (index.cNumber.type)
 			return result.failure(RuntimeError("Can't read index of type double: index '" + index.toString() + "' of '" + variableName + "'", node.startPos, node.endPos));
-		if ((long long)index.cNumber.value < 0 || (long long)index.cNumber.value >= variable.cVector.size())
-			return result.failure(RuntimeError("Can't read index '" + index.toString() + "' of '" + variableName + "' : index is out of range", node.startPos, node.endPos));
-		return result.success(InterpretedValue(variable.cVector[(long long)index.cNumber.value]));
+
+		if (node.type == 0) {
+			if ((long long)index.cNumber.value < 0 || (long long)index.cNumber.value >= variable.cVector.size())
+				return result.failure(RuntimeError("Can't read index '" + index.toString() + "' of '" + variableName + "' : index is out of range", node.startPos, node.endPos));
+			return result.success(InterpretedValue(variable.cVector[(long long)index.cNumber.value]));
+		}
+		if ((long long)index.cNumber.value < 0 || (long long)index.cNumber.value >= variable.cString.size())
+			return result.failure(RuntimeError("Can't read character '" + index.toString() + "' of '" + variableName + "' : index is out of range", node.startPos, node.endPos));
+		return result.success(InterpretedValue(std::string("") + variable.cString[(long long)index.cNumber.value]));
 	}
 
 	RuntimeResult visitIfNode(IfNode node, Context& context, bool inFunction) {
@@ -694,6 +754,10 @@ public:
 		std::string string = stdcin();
 
 		return result.success(InterpretedValue(string));
+	}
+	
+	RuntimeResult visitInterruptionNode(InterruptionNode node, Context& context, bool inFuntion) {
+		return RuntimeResult().failure(RuntimeError("Can't '" + node.toString() + "' here", Position(), Position()));
 	}
 
 };

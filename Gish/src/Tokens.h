@@ -24,9 +24,9 @@ TokenType TT_AND ("KEY", "AND");
 TokenType TT_OR  ("KEY", "OR");
 
 TokenType TT_GREAT    ("CMP", "GREAT");
-TokenType TT_SMALL    ("CMP", "GREAT");
-TokenType TT_GREAT_EQ ("CMP", "GREAT");
-TokenType TT_SMALL_EQ ("CMP", "GREAT");
+TokenType TT_SMALL    ("CMP", "SMALL");
+TokenType TT_GREAT_EQ ("CMP", "GREAT_EQ");
+TokenType TT_SMALL_EQ ("CMP", "SMALL_EQ");
 TokenType TT_NOT      ("CMP", "NOT");
 
 TokenType TT_IS   ("HELP", "IS");
@@ -43,6 +43,7 @@ TokenType TT_A    ("HELP", "A");
 TokenType TT_IDENTIFIER ("NAME", "IDENTIFIER");
 
 TokenType TT_KEYWORD_INDEX        ("KEY", "INDEX");
+TokenType TT_KEYWORD_CHARACTER    ("KEY", "CHARACTER");
 TokenType TT_KEYWORD_SIZEOF       ("KEY", "SIZEOF");
 TokenType TT_KEYWORD_ITERATIONS   ("KEY", "ITERATIONS");
 
@@ -67,6 +68,9 @@ TokenType TT_KEYWORD_TYPEOF   ("KEY", "TYPEOF");
 TokenType TT_KEYWORD_UNDEFINE ("KEY", "UNDEF");
 TokenType TT_KEYWORD_VARIABLE ("KEY", "VARIBALE");
 TokenType TT_KEYWORD_FUNCTION ("KEY", "FUNCTION");
+
+TokenType TT_KEYWORD_CONTINUE ("KEY", "CONTINUE");
+TokenType TT_KEYWORD_BREAK    ("KEY", "BREAK");
 
 TokenType TT_KEYWORD_STRING  ("KEY", "STRING");
 TokenType TT_KEYWORD_NUMBER  ("KEY", "NUMBER");

@@ -23,7 +23,7 @@ std::vector<void*> allocationsToClear;
 
 int main() {
 
-	bool disableOutput = false;
+	bool disableOutput = true;
 
 	while (1) {
 		printf("gish >> ");

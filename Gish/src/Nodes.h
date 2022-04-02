@@ -180,19 +180,22 @@ public:
 };
 
 
-class TypeNode : public BaseNode {
+class PropertyNode : public BaseNode {
 public:
 
 	Token varNameToken = null;
+	int type = 0; //0 => Typeof; 1 => sizeoft
 
-	TypeNode(Token varNameToken) {
+
+	PropertyNode(Token varNameToken, int type) {
 		this->varNameToken.clear();
 		this->varNameToken = varNameToken;
 		this->startPos = varNameToken.startPos;
 		this->endPos = varNameToken.endPos;
+		this->type = type;
 	}
 	std::string toString() {
-		return this->varNameToken.value.toString();
+		return ( this->type == 0 ? "typeof " : "sizeof" ) + this->varNameToken.toString();
 	}
 
 	void clear() {
@@ -224,10 +227,11 @@ class VarIndexAccessNode : public BaseNode {
 public:
 	Token varNameToken = null;
 	Node* index = nullptr;
+	int type = 0; // 0 => Index; 1 => Character;
 
 	VarIndexAccessNode(const VarIndexAccessNode& node, std::vector<void*>& allocationTable, bool passOn);
-	VarIndexAccessNode(Token varNameToken, Node* index);
-	VarIndexAccessNode(Token varNameToken, Node* index, std::vector<void*>& allocationTable, bool passOn);
+	VarIndexAccessNode(Token varNameToken, Node* index, int type);
+	VarIndexAccessNode(Token varNameToken, Node* index, int type, std::vector<void*>& allocationTable, bool passOn);
 	std::string toString();
 	void clear();
 
@@ -425,7 +429,7 @@ public:
 		case Class::StringNode: ((StringNode*)this->nodePtr)->clear(); break;
 		case Class::ArrayNode:  ((ArrayNode*)this->nodePtr)->clear(); break;
 		case Class::ListNode:   ((ListNode*)this->nodePtr)->clear(); break;
-		case Class::TypeNode:   ((TypeNode*)this->nodePtr)->clear(); break;
+		case Class::PropertyNode:   ((PropertyNode*)this->nodePtr)->clear(); break;
 		case Class::VarAccessNode:   ((VarAccessNode*)this->nodePtr)->clear(); break;
 		case Class::VarIndexNode: ((VarIndexAccessNode*)this->nodePtr)->clear(); break;
 		case Class::VarAssignNode:   ((VarAssignNode*)this->nodePtr)->clear(); break;
@@ -454,7 +458,7 @@ public:
 			case Class::BooleanNode: this->nodePtr = new BooleanNode(*(BooleanNode*)node.nodePtr); break;
 			case Class::ArrayNode: this->nodePtr = new ArrayNode(*(ArrayNode*)node.nodePtr, allocationTable, true); break;
 			case Class::ListNode: this->nodePtr = new ListNode(*(ListNode*)node.nodePtr, allocationTable, true); break;
-			case Class::TypeNode: this->nodePtr = new TypeNode(*(TypeNode*)node.nodePtr); break;
+			case Class::PropertyNode: this->nodePtr = new PropertyNode(*(PropertyNode*)node.nodePtr); break;
 			case Class::VarAccessNode: this->nodePtr = new VarAccessNode(*(VarAccessNode*)node.nodePtr); break;
 			case Class::VarIndexNode: this->nodePtr = new VarIndexAccessNode(*(VarIndexAccessNode*)node.nodePtr, allocationTable, true); break;
 			case Class::VarAssignNode: this->nodePtr = new VarAssignNode(*(VarAssignNode*)node.nodePtr, allocationTable, true); break;
@@ -481,7 +485,7 @@ public:
 			case Class::BooleanNode: this->nodePtr = new BooleanNode(*(BooleanNode*)node.nodePtr); break;
 			case Class::ArrayNode: this->nodePtr = new ArrayNode(*(ArrayNode*)node.nodePtr); break;
 			case Class::ListNode: this->nodePtr = new ListNode(*(ListNode*)node.nodePtr); break;
-			case Class::TypeNode: this->nodePtr = new TypeNode(*(TypeNode*)node.nodePtr); break;
+			case Class::PropertyNode: this->nodePtr = new PropertyNode(*(PropertyNode*)node.nodePtr); break;
 			case Class::VarAccessNode: this->nodePtr = new VarAccessNode(*(VarAccessNode*)node.nodePtr); break;
 			case Class::VarIndexNode: this->nodePtr = new VarIndexAccessNode(*(VarIndexAccessNode*)node.nodePtr); break;
 			case Class::VarAssignNode: this->nodePtr = new VarAssignNode(*(VarAssignNode*)node.nodePtr); break;
@@ -533,9 +537,9 @@ public:
 		this->nodePtr = node;
 		this->type = Class::ListNode;
 	}
-	Node(TypeNode* node) {
+	Node(PropertyNode* node) {
 		this->nodePtr = node;
-		this->type = Class::TypeNode;
+		this->type = Class::PropertyNode;
 	}
 	Node(VarAccessNode* node) {
 		this->nodePtr = node;
@@ -619,7 +623,7 @@ public:
 		case Class::VarIndexReAssignNode: return ((VarIndexReAssignNode*)this->nodePtr)->toString(); break;
 		case Class::ArrayNode: return ((ArrayNode*)this->nodePtr)->toString(); break;
 		case Class::ListNode: return ((ListNode*)this->nodePtr)->toString(); break;
-		case Class::TypeNode: return ((TypeNode*)this->nodePtr)->toString(); break;
+		case Class::PropertyNode: return ((PropertyNode*)this->nodePtr)->toString(); break;
 		case Class::IfNode: return ((IfNode*)this->nodePtr)->toString(); break;
 		case Class::IterationNode: return ((IterationNode*)this->nodePtr)->toString(); break;
 		case Class::TimedIterationNode: return ((TimedIterationNode*)this->nodePtr)->toString(); break;
@@ -699,8 +703,6 @@ std::string BinaryNode::toString() {
 	return std::string("(") + this->leftNode->toString() + ", " + this->opToken.toString() + ", " + this->rightNode->toString() + ")";
 }
 void BinaryNode::clear() {
-	this->leftNode->clear();
-	this->rightNode->clear();
 	this->opToken.clear();
 }
 
@@ -737,20 +739,22 @@ void ListNode::clear() {
 	}
 	this->nodes.~vector();
 }
-VarIndexAccessNode::VarIndexAccessNode(Token varNameToken, Node* index) {
+VarIndexAccessNode::VarIndexAccessNode(Token varNameToken, Node* index, int type) {
 	this->varNameToken.clear();
 	this->varNameToken = varNameToken;
 	this->index = index;
 	this->startPos = index->startPos;
 	this->endPos = varNameToken.endPos;
+	this->type = type;
 }
-VarIndexAccessNode::VarIndexAccessNode(Token varNameToken, Node* index, std::vector<void*>& allocationTable, bool passOn) {
+VarIndexAccessNode::VarIndexAccessNode(Token varNameToken, Node* index, int type, std::vector<void*>& allocationTable, bool passOn) {
 	this->varNameToken.clear();
 	this->varNameToken = varNameToken;
 	this->index = new Node(*index, allocationTable, passOn);
 	allocationTable.push_back(this->index);
 	this->startPos = index->startPos;
 	this->endPos = varNameToken.endPos;
+	this->type = type;
 }
 VarIndexAccessNode::VarIndexAccessNode(const VarIndexAccessNode& node, std::vector<void*>& allocationTable, bool passOn) {
 	this->varNameToken.clear();
@@ -759,6 +763,7 @@ VarIndexAccessNode::VarIndexAccessNode(const VarIndexAccessNode& node, std::vect
 	allocationTable.push_back(this->index);
 	this->startPos = node.index->startPos;
 	this->endPos = node.varNameToken.endPos;
+	this->type = node.type;
 }
 std::string VarIndexAccessNode::toString() {
 	return std::string("index ( ") + index->toString() + " of " + varNameToken.toString() + " )";
@@ -895,8 +900,8 @@ IfNode::IfNode(const IfNode& node, std::vector<void*>& allocationTable, bool pas
 	this->body = new Node(*node.body, allocationTable, passOn);
 	allocationTable.push_back(this->condition);
 	allocationTable.push_back(this->body);
-	if (elseStatement != nullptr) {
-		this->elseStatement = new Node(*elseStatement, allocationTable, passOn);
+	if (node.elseStatement != nullptr) {
+		this->elseStatement = new Node(*node.elseStatement, allocationTable, passOn);
 		allocationTable.push_back(this->elseStatement);
 	}
 }
@@ -908,7 +913,9 @@ void IfNode::clear() {
 	}
 }
 std::string IfNode::toString() {
-	return std::string("if ") + this->condition->toString() + " do " + this->body->toString();
+	if (this->elseStatement == nullptr)
+		return std::string("if ") + this->condition->toString() + " do " + this->body->toString();
+	return std::string("if ") + this->condition->toString() + " do " + this->body->toString() + " ( else " + this->elseStatement->toString() + ")";
 }
 
 IterationNode::IterationNode(Node* iterations, Node* body) {

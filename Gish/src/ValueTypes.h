@@ -37,7 +37,7 @@ class BinaryNode;
 class VarAssignNode;
 class VarReAssignNode;
 class VarAccessNode;
-class TypeNode;
+class PropertyNode;
 class ParserResult;
 class Parser;
 
@@ -73,7 +73,7 @@ enum class Class {
 	VarAssignNode,
 	VarAccessNode,
 	VarReAssignNode,
-	TypeNode,
+	PropertyNode,
 	IfNode,
 	IterationNode,
 	TimedIterationNode,
@@ -85,7 +85,7 @@ enum class Class {
 	UndefineNode,
 	PrintNode,
 	InputNode,
-	InterruptionNode
+	InterruptionNode,
 	ParserResult,
 	Parser
 };
@@ -227,6 +227,16 @@ public:
 			return Number(r);
 		}
 		return Number(1);
+	}
+
+	bool equals(Number number) {
+		return this->type ? number.type ? (double)this->value == (double)number.value : (double)this->value == (long long)number.value : number.type ? (long long)this->value == (double)number.value : (long long)this->value == (long long)number.value;
+	}
+	bool greaterThan(Number number) {
+		return this->type ? number.type ? (double)this->value > (double)number.value : (double)this->value > (long long)number.value : number.type ? (long long)this->value > (double)number.value : (long long)this->value > (long long)number.value;
+	}
+	bool lessThan(Number number) {
+		return this->type ? number.type ? (double)this->value < (double)number.value : (double)this->value < (long long)number.value : number.type ? (long long)this->value < (double)number.value : (long long)this->value < (long long)number.value;
 	}
 
 
