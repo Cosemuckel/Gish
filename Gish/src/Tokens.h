@@ -53,8 +53,10 @@ TokenType TT_KEYWORD_INPUT   ("KEY", "INPUT");
 
 TokenType TT_KEYWORD_RETURN ("KEY", "RETURN");
 
-TokenType TT_PRINT ("KEY", "PRINT");
-TokenType TT_SCAN  ("KEY", "SCAN");
+TokenType TT_PRINT   ("USR", "PRINT");
+TokenType TT_SCAN    ("USR", "SCAN");
+TokenType TT_EXECUTE ("USR", "EXECUTE");
+TokenType TT_COMMAND ("USR", "COMMAND");
 
 TokenType TT_KEYWORD_IF      ("KEY", "IF");
 TokenType TT_KEYWORD_ELSE    ("KEY", "ELSE");

@@ -34,8 +34,9 @@ const char* stdcin() {
 
 const char* stdfin(const char* fileName) {
 	std::ifstream ifs(fileName);
-	std::string content((std::istreambuf_iterator<char>(ifs)),
-		(std::istreambuf_iterator<char>()));
+	if (ifs.fail())
+		throw 0;
+	std::string content((std::istreambuf_iterator<char>(ifs)), (std::istreambuf_iterator<char>()));
 	char* result = (char*)malloc(content.length() + 1);
 	memcpy((void*)result, content.c_str(), content.length());
 	result[content.length()] = '\0';

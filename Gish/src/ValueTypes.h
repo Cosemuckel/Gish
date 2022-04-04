@@ -83,7 +83,7 @@ enum class Class {
 	FunctionCallNode,
 	ReturnNode,
 	UndefineNode,
-	PrintNode,
+	OutputNode,
 	InputNode,
 	InterruptionNode,
 	ParserResult,

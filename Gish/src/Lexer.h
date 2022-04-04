@@ -201,6 +201,7 @@ public:
 	LexerResult lex() {
 		std::vector<Token> result = std::vector<Token>();
 		this->advance();
+		Position::fileCode;
 		while (this->currentChar != 2) {
 			if (LEXING::spaceCharacters.find(this->currentChar) != std::string::npos) {
 				this->advance();
@@ -250,6 +251,7 @@ public:
 			}
 
 		}
+
 		result.push_back(Token(TT_EOF));
 		return LexerResult(result, null);
 
@@ -285,10 +287,12 @@ public:
 		else if (string == "smaller") tokenType = TT_SMALL;
 		else if (string == "not")     tokenType = TT_NOT;
 
-		else if (string == "return")        tokenType = TT_KEYWORD_RETURN;
+		else if (string == "return")  tokenType = TT_KEYWORD_RETURN;
 
 		else if (string == "print")   tokenType = TT_PRINT;
 		else if (string == "scan")    tokenType = TT_SCAN;
+		else if (string == "execute") tokenType = TT_EXECUTE;
+		else if (string == "command") tokenType = TT_COMMAND;
 
 		else if (string == "index")        tokenType = TT_KEYWORD_INDEX;
 		else if (string == "character")    tokenType = TT_KEYWORD_CHARACTER;

@@ -1,9 +1,4 @@
 
-### View text.txt for Details
-	* comparaison
-		=> smaller, greater in parser and interpreter, not in interpreter
-		=> smaller or equal, greater or equal
-
 ###
 	* implement break and continue (Node exists)
 	* 'inline' functions
@@ -18,7 +13,7 @@
 			=> other existing stuff
 
 ###
-	* errors
+	* positions in nodes and interpreted values;
 
 ###
-	* refactor add, sub, etc return block
+	

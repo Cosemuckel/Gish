@@ -35,12 +35,13 @@ public:
 		this->error = interpretedValue.error;
 	}
 
-	InterpretedValue(Value value, Error error)
+	InterpretedValue(Value value, Position startPos, Position endPos, Error error)
 		:Value(value) {
 		this->error = error;
 	}
-	InterpretedValue(Value value)
+	InterpretedValue(Value value, Position startPos, Position endPos)
 		:Value(value) {
+		this->error = null;
 	}
 
 	std::string toString() {
@@ -53,117 +54,113 @@ public:
 	InterpretedValue addedTo(InterpretedValue value) {
 		if (this->type == Value::valueType::Number) {
 			if (value.type == Value::valueType::Number)
-				return InterpretedValue(this->cNumber.plus(value.cNumber), null);
-			return InterpretedValue(InterpretedValue(null), RuntimeError(std::string("Can't add a ") + value.Name() + " to a Number", startPos, endPos));
+				return InterpretedValue(this->cNumber.plus(value.cNumber), this->startPos, value.endPos, null);
+			return InterpretedValue(InterpretedValue(null), this->startPos, value.endPos, RuntimeError(std::string("Can't add a ") + value.Name() + " to a Number", startPos, endPos));
 		}
 		if (this->type == Value::valueType::String) {
 			if (value.type == Value::valueType::String)
-				return InterpretedValue(this->cString + value.cString, null);
-			return InterpretedValue(InterpretedValue(null), RuntimeError(std::string("Can't add a ") + value.Name() + " to a String", startPos, endPos));
+				return InterpretedValue(this->cString + value.cString, this->startPos, value.endPos, null);
+			return InterpretedValue(InterpretedValue(null), this->startPos, value.endPos, RuntimeError(std::string("Can't add a ") + value.Name() + " to a String", startPos, endPos));
 		}
-		return InterpretedValue(InterpretedValue(null), RuntimeError(std::string("Can't add a ") + value.Name() + " to a " + this->Name(), startPos, endPos));
+		return InterpretedValue(InterpretedValue(null), this->startPos, value.endPos, RuntimeError(std::string("Can't add a ") + value.Name() + " to a " + this->Name(), startPos, endPos));
 	}
 	InterpretedValue subbedBy(InterpretedValue value) {
 		if (this->type == Value::valueType::Number) {
 			if (value.type == Value::valueType::Number)
-				return InterpretedValue(this->cNumber.minus(value.cNumber), null);
-			return InterpretedValue(InterpretedValue(null), RuntimeError(std::string("Can't subtract a ") + value.Name() + " from a Number", startPos, endPos));
+				return InterpretedValue(this->cNumber.minus(value.cNumber), this->startPos, value.endPos, null);
+			return InterpretedValue(InterpretedValue(null), this->startPos, value.endPos, RuntimeError(std::string("Can't subtract a ") + value.Name() + " from a Number", startPos, endPos));
 		}
-		return InterpretedValue(InterpretedValue(null), RuntimeError(std::string("Can't subtract a ") + value.Name() + " from a " + this->Name(), startPos, endPos));
+		return InterpretedValue(InterpretedValue(null), this->startPos, value.endPos, RuntimeError(std::string("Can't subtract a ") + value.Name() + " from a " + this->Name(), startPos, endPos));
 	}
 	InterpretedValue multipliedWith(InterpretedValue value) {
 		if (this->type == Value::valueType::Number) {
 			if (value.type == Value::valueType::Number)
-				return InterpretedValue(this->cNumber.times(value.cNumber), null);
+				return InterpretedValue(this->cNumber.times(value.cNumber), this->startPos, value.endPos, null);
 			if (value.type == Value::valueType::String)
-				if (this->cNumber.type ? (double)this->cNumber.value < 0.0f : (long long)this->cNumber.value < 0ll) return InterpretedValue(InterpretedValue(null), RuntimeError(std::string("Can't mutiple a String with a negative Number"), startPos, endPos));
-				else return InterpretedValue(stringTimes(value.cString, this->cNumber), null);
-			return InterpretedValue(InterpretedValue(null), RuntimeError(std::string("Can't multiply a Number with a ") + value.Name(), startPos, endPos));
+				if (this->cNumber.type ? (double)this->cNumber.value < 0.0f : (long long)this->cNumber.value < 0ll) return InterpretedValue(InterpretedValue(null), this->startPos, value.endPos, RuntimeError(std::string("Can't mutiple a String with a negative Number"), startPos, endPos));
+				else return InterpretedValue(stringTimes(value.cString, this->cNumber), this->startPos, value.endPos, null);
+			return InterpretedValue(InterpretedValue(null), this->startPos, value.endPos, RuntimeError(std::string("Can't multiply a Number with a ") + value.Name(), startPos, endPos));
 		}
 		if (this->type == Value::valueType::String) {
 			if (value.type == Value::valueType::Number)
-				if (value.cNumber.type ? (double)value.cNumber.value < 0.0f : (long long)value.cNumber.value < 0ll) return InterpretedValue(InterpretedValue(null), RuntimeError(std::string("Can't mutiple a String with a negative Number"), startPos, endPos));
-				else return InterpretedValue(stringTimes(this->cString, value.cNumber), null);
-			return InterpretedValue(InterpretedValue(null), RuntimeError(std::string("Can't multiply a String with a ") + value.Name(), startPos, endPos));
+				if (value.cNumber.type ? (double)value.cNumber.value < 0.0f : (long long)value.cNumber.value < 0ll) return InterpretedValue(InterpretedValue(null), this->startPos, value.endPos, RuntimeError(std::string("Can't mutiple a String with a negative Number"), startPos, endPos));
+				else return InterpretedValue(stringTimes(this->cString, value.cNumber), this->startPos, value.endPos, null);
+			return InterpretedValue(InterpretedValue(null), this->startPos, value.endPos, RuntimeError(std::string("Can't multiply a String with a ") + value.Name(), startPos, endPos));
 		}
-		return InterpretedValue(InterpretedValue(null), RuntimeError(std::string("Can't multiply a ") + this->Name() + " with a " + value.Name(), startPos, endPos));
+		return InterpretedValue(InterpretedValue(null), this->startPos, value.endPos, RuntimeError(std::string("Can't multiply a ") + this->Name() + " with a " + value.Name(), startPos, endPos));
 	}
 	InterpretedValue dividedBy(InterpretedValue value) {
 		if (this->type == Value::valueType::Number) {
 			if (value.type == Value::valueType::Number)
-				if (value.cNumber.type ? (double)value.cNumber.value == 0.0f : (long long)value.cNumber.value == 0ll) return InterpretedValue(InterpretedValue(null), RuntimeError(std::string("Can't divide by 0"), startPos, endPos));
-				else return InterpretedValue(this->cNumber.over(value.cNumber), null);
+				if (value.cNumber.type ? (double)value.cNumber.value == 0.0f : (long long)value.cNumber.value == 0ll) return InterpretedValue(InterpretedValue(null), this->startPos, value.endPos, RuntimeError(std::string("Can't divide by 0"), startPos, endPos));
+				else return InterpretedValue(this->cNumber.over(value.cNumber), this->startPos, value.endPos, null);
 			if (value.type == Value::valueType::String)
-				return InterpretedValue(stringDivis(value.cString, this->cNumber), null);
-			return InterpretedValue(InterpretedValue(null), RuntimeError(std::string("Can't divide a Number by a ") + value.Name(), startPos, endPos));
+				return InterpretedValue(stringDivis(value.cString, this->cNumber), this->startPos, value.endPos, null);
+			return InterpretedValue(InterpretedValue(null), this->startPos, value.endPos, RuntimeError(std::string("Can't divide a Number by a ") + value.Name(), startPos, endPos));
 		}
 		if (this->type == Value::valueType::String) {
 			if (value.type == Value::valueType::Number)
-				return InterpretedValue(stringDivis(this->cString, value.cNumber), null);
-			return InterpretedValue(InterpretedValue(null), RuntimeError(std::string("Can't divide a String by a ") + value.Name(), startPos, endPos));
+				return InterpretedValue(stringDivis(this->cString, value.cNumber), this->startPos, value.endPos, null);
+			return InterpretedValue(InterpretedValue(null), this->startPos, value.endPos, RuntimeError(std::string("Can't divide a String by a ") + value.Name(), startPos, endPos));
 		}
-		return InterpretedValue(InterpretedValue(null), RuntimeError(std::string("Can't divide a ") + this->Name() + " by a " + value.Name(), startPos, endPos));
+		return InterpretedValue(InterpretedValue(null), this->startPos, value.endPos, RuntimeError(std::string("Can't divide a ") + this->Name() + " by a " + value.Name(), startPos, endPos));
 	}
 	InterpretedValue raisedTo(InterpretedValue value) {
 		if (this->type == Value::valueType::Number) {
 			if (value.type == Value::valueType::Number)
-				return InterpretedValue(this->cNumber.powered(value.cNumber), null);
-			return InterpretedValue(InterpretedValue(null), RuntimeError(std::string("Can't raise a Number to a "), startPos, endPos));
+				return InterpretedValue(this->cNumber.powered(value.cNumber), this->startPos, value.endPos, null);
+			return InterpretedValue(InterpretedValue(null), this->startPos, value.endPos, RuntimeError(std::string("Can't raise a Number to a "), startPos, endPos));
 		}
-		return InterpretedValue(InterpretedValue(null), RuntimeError(std::string("Can't raise a ") + this->Name() + " to a " + value.Name(), startPos, endPos));
+		return InterpretedValue(InterpretedValue(null), this->startPos, value.endPos, RuntimeError(std::string("Can't raise a ") + this->Name() + " to a " + value.Name(), startPos, endPos));
 	}
 	InterpretedValue factorial() {
 		if (this->type == Value::valueType::Number) {
-			if ( this->cNumber.type ? ( (double)this->cNumber.value < 0 || (double)this->cNumber.value != std::floor((double)this->cNumber.value)) : (long long)this->cNumber.value < 0)
-				return InterpretedValue(InterpretedValue(null), RuntimeError(std::string("Can't factorialize a fraction or a negative"), startPos, endPos));
+			if (this->cNumber.type ? ((double)this->cNumber.value < 0 || (double)this->cNumber.value != std::floor((double)this->cNumber.value)) : (long long)this->cNumber.value < 0)
+				return InterpretedValue(InterpretedValue(null), this->startPos, this->endPos, RuntimeError(std::string("Can't factorialize a fraction or a negative"), startPos, endPos));
 			if (this->cNumber.type ? ((double)this->cNumber.value > 12) : (long long)this->cNumber.value > 12)
-				return InterpretedValue(InterpretedValue(null), RuntimeError(std::string("Number is too big"), startPos, endPos));
-			return InterpretedValue(this->cNumber.factorial(), null);
+				return InterpretedValue(InterpretedValue(null), this->startPos, this->endPos, RuntimeError(std::string("Number is too big"), startPos, endPos));
+			return InterpretedValue(this->cNumber.factorial(), this->startPos, this->endPos, null);
 		}
-		return InterpretedValue(InterpretedValue(null), RuntimeError(std::string("Can't factorialize a ") + this->Name(), startPos, endPos));
+		return InterpretedValue(InterpretedValue(null), this->startPos, this->endPos, RuntimeError(std::string("Can't factorialize a ") + this->Name(), startPos, endPos));
 	}
 	InterpretedValue equalTo(InterpretedValue value, bool invert) {
-		if (!invert)
-			if (this->type == Value::valueType::Number && value.type == Value::valueType::Number)
-				return InterpretedValue(Bool(this->cNumber.equals(value.cNumber)), Error(null));
-			else if (this->type == Value::valueType::String && value.type == Value::valueType::String)
-				return InterpretedValue(Bool(this->cString == value.cString), Error(null));
-			else if (this->type == Value::valueType::Bool && value.type == Value::valueType::Bool)
-				return InterpretedValue(Bool(this->cBool.value == value.cBool.value), Error(null));
-			else return InterpretedValue(InterpretedValue(null), RuntimeError(std::string("Can't compare a ") + this->Name() + " to a " + value.Name(), startPos, endPos));
-		else
-			if (this->type == Value::valueType::Number && value.type == Value::valueType::Number)
-				return InterpretedValue(Bool(!this->cNumber.equals(value.cNumber)), Error(null));
-			else if (this->type == Value::valueType::String && value.type == Value::valueType::String)
-				return InterpretedValue(Bool(this->cString != value.cString), Error(null));
-			else if (this->type == Value::valueType::Bool && value.type == Value::valueType::Bool)
-				return InterpretedValue(Bool(!this->cBool.value == value.cBool.value), Error(null));
-			else return InterpretedValue(InterpretedValue(null), RuntimeError(std::string("Can't compare a ") + this->Name() + " to a " + value.Name(), startPos, endPos));
-		return InterpretedValue(Bool(false), Error(null));
+		if (this->type == Value::valueType::Number && value.type == Value::valueType::Number)
+			return InterpretedValue(Bool(this->cNumber.equals(value.cNumber) ^ invert), this->startPos, value.endPos, Error(null));
+		else if (this->type == Value::valueType::String && value.type == Value::valueType::String)
+			return InterpretedValue(Bool((this->cString == value.cString) ^ invert), this->startPos, value.endPos, Error(null));
+		else if (this->type == Value::valueType::Bool && value.type == Value::valueType::Bool)
+			return InterpretedValue(Bool((this->cBool.value == value.cBool.value) ^ invert), this->startPos, value.endPos, Error(null));
+		else return InterpretedValue(InterpretedValue(null), this->startPos, value.endPos, RuntimeError(std::string("Can't compare a ") + this->Name() + " to a " + value.Name(), startPos, endPos));
+		return InterpretedValue(Bool(false), this->startPos, value.endPos, Error(null));
 	}
 	InterpretedValue greaterThan(InterpretedValue value, bool orEqual, bool invert) {
-		if (!invert)
+		if (!orEqual)
 			if (this->type == Value::valueType::Number && value.type == Value::valueType::Number)
-				return InterpretedValue(Bool(this->cNumber.greaterThan(value.cNumber)), Error(null));
-			else return InterpretedValue(InterpretedValue(null), RuntimeError(std::string("Can't compare a ") + this->Name() + " to a " + value.Name(), startPos, endPos));
-		else
-			if (this->type == Value::valueType::Number && value.type == Value::valueType::Number)
-				return InterpretedValue(Bool(!this->cNumber.greaterThan(value.cNumber)), Error(null));
-			else return InterpretedValue(InterpretedValue(null), RuntimeError(std::string("Can't compare a ") + this->Name() + " to a " + value.Name(), startPos, endPos));
-		return InterpretedValue(Bool(false), Error(null));
+				return InterpretedValue(Bool(this->cNumber.greaterThan(value.cNumber) ^ invert), this->startPos, value.endPos, Error(null));
+			else return InterpretedValue(InterpretedValue(null), this->startPos, value.endPos, RuntimeError(std::string("Can't compare a ") + this->Name() + " to a " + value.Name(), startPos, endPos));
+		if (this->type == Value::valueType::Number && value.type == Value::valueType::Number)
+			return InterpretedValue(Bool(( this->cNumber.greaterThan(value.cNumber) || this->cNumber.equals(value.cNumber)) ^ invert), this->startPos, value.endPos, Error(null));
+		else return InterpretedValue(InterpretedValue(null), this->startPos, value.endPos, RuntimeError(std::string("Can't compare a ") + this->Name() + " to a " + value.Name(), startPos, endPos));
 	}
 	InterpretedValue smallerThan(InterpretedValue value, bool orEqual, bool invert) {
-		if (!invert)
+		if (!orEqual)
 			if (this->type == Value::valueType::Number && value.type == Value::valueType::Number)
-				return InterpretedValue(Bool(this->cNumber.lessThan(value.cNumber)), Error(null));
-			else return InterpretedValue(InterpretedValue(null), RuntimeError(std::string("Can't compare a ") + this->Name() + " to a " + value.Name(), startPos, endPos));
-		else
-			if (this->type == Value::valueType::Number && value.type == Value::valueType::Number)
-				return InterpretedValue(Bool(!this->cNumber.lessThan(value.cNumber)), Error(null));
-			else return InterpretedValue(InterpretedValue(null), RuntimeError(std::string("Can't compare a ") + this->Name() + " to a " + value.Name(), startPos, endPos));
-		return InterpretedValue(Bool(false), Error(null));
+				return InterpretedValue(Bool(this->cNumber.lessThan(value.cNumber) ^ invert), this->startPos, value.endPos, Error(null));
+			else return InterpretedValue(InterpretedValue(null), this->startPos, value.endPos, RuntimeError(std::string("Can't compare a ") + this->Name() + " to a " + value.Name(), startPos, endPos));
+		if (this->type == Value::valueType::Number && value.type == Value::valueType::Number)
+			return InterpretedValue(Bool((this->cNumber.lessThan(value.cNumber) || this->cNumber.equals(value.cNumber)) ^ invert), this->startPos, value.endPos, Error(null));
+		else return InterpretedValue(InterpretedValue(null), this->startPos, value.endPos, RuntimeError(std::string("Can't compare a ") + this->Name() + " to a " + value.Name(), startPos, endPos));
 	}
-
+	InterpretedValue ored(InterpretedValue value) {
+		if (this->type == Value::valueType::Bool && value.type == Value::valueType::Bool)
+			return InterpretedValue(Bool(value.cBool.value || this->cBool.value), this->startPos, value.endPos, Error(null));
+		else return InterpretedValue(InterpretedValue(null), this->startPos, value.endPos, RuntimeError(std::string("Operants must be of type Boolean, but are of type ") + this->Name() + " and " + value.Name(), startPos, endPos));
+	}
+	InterpretedValue anded(InterpretedValue value) {
+		if (this->type == Value::valueType::Bool && value.type == Value::valueType::Bool)
+			return InterpretedValue(Bool(value.cBool.value && this->cBool.value), this->startPos, value.endPos, Error(null));
+		else return InterpretedValue(InterpretedValue(null), this->startPos, value.endPos, RuntimeError(std::string("Operants must be of type Boolean, but are of type ") + this->Name() + " and " + value.Name(), startPos, endPos));
+	}
 
 
 	nullCMP;
@@ -217,6 +214,13 @@ public:
 			return this->result.cVector[this->result.cVector.size() - 1].toString();
 		return "";
 	}
+	std::string toString(bool, bool) {
+		if (this->error != null)
+			return this->error.toString();
+		if (this->result.cVector.size() > 0)
+			return this->result.cVector[this->result.cVector.size() - 1].toString(true);
+		return "";
+	}
 
 	void clear();
 	std::string toString();
@@ -250,6 +254,7 @@ std::string RuntimeResult::toString() {
 
 
 class Interpreter;
+class Context;
 
 class Function : public Object {
 public:
@@ -258,9 +263,9 @@ public:
 	Value::valueType returnType;
 	std::vector<Argument> arguments;
 	Interpreter* mInterpreter;
-	std::vector<void*> mAllocations;
+	Allocator mAllocations;
 
-	RuntimeResult execute(std::vector<InterpretedValue> arguments);
+	RuntimeResult execute(std::vector<InterpretedValue> arguments, Context& context);
 
 	Function() {
 
@@ -284,9 +289,7 @@ public:
 
 	void clear() {
 		this->arguments.clear();
-		for (int i = 0; i < this->mAllocations.size(); i++) {
-			delete mAllocations[i];
-		}
+		this->mAllocations.clearAllAllocations();
 	}
 	
 	nullCMP;
@@ -326,7 +329,9 @@ public:
 	}
 
 	void clear() {
-
+		for (auto& symbol : symbols)
+			symbol.second.clear();
+		this->symbols.clear();
 	}
 
 	nullCMP;
@@ -364,6 +369,7 @@ public:
 	void clear() {
 		for (auto& symbol : symbols)
 			symbol.second.clear();
+		this->symbols.clear();
 	}
 };
 
@@ -390,9 +396,7 @@ public:
 class Interpreter : public Object {
 public:
 
-	static Context context;
-
-	RuntimeResult run(Node* node) {
+	RuntimeResult run(Node* node, Context& context) {
 		return this->visit(*node, context, false);
 	}
 
@@ -419,7 +423,7 @@ public:
 		case Class::FunctionCallNode: return this->visitFunctionCallNode(*(FunctionCallNode*)node.nodePtr, context, inFunction);
 		case Class::ReturnNode: return this->visitReturnNode(*(ReturnNode*)node.nodePtr, context, inFunction);
 		case Class::UndefineNode: return this->visitUndefineNode(*(UndefineNode*)node.nodePtr, context, inFunction);
-		case Class::PrintNode: return this->visitPrintNode(*(PrintNode*)node.nodePtr, context, inFunction);
+		case Class::OutputNode: return this->visitOutputNode(*(OutputNode*)node.nodePtr, context, inFunction);
 		case Class::InputNode: return this->visitInputNode(*(InputNode*)node.nodePtr, context, inFunction);
 		case Class::InterruptionNode: return this->visitInterruptionNode(*(InterruptionNode*)node.nodePtr, context, inFunction);
 		default:
@@ -438,20 +442,20 @@ public:
 			RET_RETA(v);
 			results.push_back(v);
 		}
-		InterpretedValue data = InterpretedValue(results);
+		InterpretedValue data = InterpretedValue(results, node.startPos, node.endPos);
 		return result.success(data);
 	}
 
 	RuntimeResult visitNumberNode(NumberNode node, Context& context, bool inFunction) {
-		return RuntimeResult().success(InterpretedValue(node.token.value));
+		return RuntimeResult().success(InterpretedValue(node.token.value, node.startPos, node.endPos));
 	} 
 
 	RuntimeResult visitStringNode(StringNode node, Context& context, bool inFunction) {
-		return RuntimeResult().success(InterpretedValue(node.token.value));
+		return RuntimeResult().success(InterpretedValue(node.token.value, node.startPos, node.endPos));
 	}
 
 	RuntimeResult visitBooleanNode(BooleanNode node, Context& context, bool inFunction) {
-		return RuntimeResult().success(InterpretedValue(node.token.value));
+		return RuntimeResult().success(InterpretedValue(node.token.value, node.startPos, node.endPos));
 	}
 
 	RuntimeResult visitArrayNode(ArrayNode node, Context& context, bool inFunction) {
@@ -463,17 +467,18 @@ public:
 			RET_RETA(v);
 			results.push_back(v);
 		}
-		return result.success(InterpretedValue((results)));
+		return result.success(InterpretedValue(results, node.startPos, node.endPos));
 	}
 
 	RuntimeResult visitUnaryNode(UnaryNode node, Context& context, bool inFunction) {
-		RuntimeResult result = this->visit(*node.nodeOn, context, inFunction);
+		RuntimeResult result = RuntimeResult();
+		InterpretedValue value = result.Register(this->visit(*node.nodeOn, context, inFunction));
 		RET_ERROR;
 		RET_RET;
 		if (node.opToken.matches(TT_MINUS))
-			return InterpretedValue(Number(result.result.cNumber)).multipliedWith(Value(Number(-1)));
+			return InterpretedValue(value, node.startPos, node.endPos).multipliedWith(InterpretedValue(Number(-1), node.startPos, node.endPos));
 		if (node.opToken.matches(TT_FAC))
-			return InterpretedValue(Number(result.result.cNumber)).factorial();
+			return InterpretedValue(value, node.startPos, node.endPos).factorial();
 		return result;
 	}
 
@@ -483,6 +488,8 @@ public:
 		RET_ERROR;
 		RET_RETA(left);
 		InterpretedValue right = result.Register(this->visit(*node.rightNode, context, inFunction));
+		RET_ERROR;
+		RET_RETA(right);
 
 		if (node.opToken.matches(TT_PLUS))
 			return RuntimeResult(left.addedTo(right));
@@ -504,6 +511,10 @@ public:
 			return RuntimeResult(left.smallerThan(right, true, node.opToken.value.cBool.value));
 		if (node.opToken.matches(TT_GREAT_EQ))
 			return RuntimeResult(left.greaterThan(right, true, node.opToken.value.cBool.value));
+		if (node.opToken.matches(TT_OR))
+			return RuntimeResult(left.ored(right));
+		if (node.opToken.matches(TT_AND))
+			return RuntimeResult(left.anded(right));
 	}
 
 	RuntimeResult visitPropertyNode(PropertyNode node, Context& context, bool inFunction) {
@@ -513,10 +524,10 @@ public:
 		if (variable == null)
 			return result.failure(RuntimeError(std::string("'") + variableName + "' is not defined", node.startPos, node.endPos));
 		if (!node.type)
-			return result.success(InterpretedValue(variable.Name()));
+			return result.success(InterpretedValue(variable.Name(), node.startPos, node.endPos));
 		if (variable.type != Value::valueType::Array && variable.type != Value::valueType::String)
 			return result.failure(RuntimeError(std::string("Can't get the size of a '") + variableName + "'", node.startPos, node.endPos));
-		return variable.type == Value::valueType::Array ? result.success(InterpretedValue(Number((long long)variable.cVector.size()))) : result.success(InterpretedValue(Number((long long)variable.cString.size())));
+		return variable.type == Value::valueType::Array ? result.success(InterpretedValue(Number((long long)variable.cVector.size()), node.startPos, node.endPos)) : result.success(InterpretedValue(Number((long long)variable.cString.size()), node.startPos, node.endPos));
 	}
 
 	RuntimeResult visitVarAssignNode(VarAssignNode node, Context& context, bool inFunction) {
@@ -596,11 +607,11 @@ public:
 		if (node.type == 0) {
 			if ((long long)index.cNumber.value < 0 || (long long)index.cNumber.value >= variable.cVector.size())
 				return result.failure(RuntimeError("Can't read index '" + index.toString() + "' of '" + variableName + "' : index is out of range", node.startPos, node.endPos));
-			return result.success(InterpretedValue(variable.cVector[(long long)index.cNumber.value]));
+			return result.success(InterpretedValue(variable.cVector[(long long)index.cNumber.value], node.startPos, node.endPos));
 		}
 		if ((long long)index.cNumber.value < 0 || (long long)index.cNumber.value >= variable.cString.size())
 			return result.failure(RuntimeError("Can't read character '" + index.toString() + "' of '" + variableName + "' : index is out of range", node.startPos, node.endPos));
-		return result.success(InterpretedValue(std::string("") + variable.cString[(long long)index.cNumber.value]));
+		return result.success(InterpretedValue(std::string("") + variable.cString[(long long)index.cNumber.value], node.startPos, node.endPos));
 	}
 
 	RuntimeResult visitIfNode(IfNode node, Context& context, bool inFunction) {
@@ -701,7 +712,7 @@ public:
 			RET_RET;
 		}
 
-		InterpretedValue returnedValue = result.Register(context.functionTable.get(node.varNameToken.value.cString).execute(arguments));
+		InterpretedValue returnedValue = result.Register(context.functionTable.get(node.varNameToken.value.cString).execute(arguments, context));
 		RET_ERROR;
 		RET_RETA(returnedValue);
 		return result.success(returnedValue);
@@ -732,20 +743,29 @@ public:
 		return result.success(null);
 	}
 
-	RuntimeResult visitPrintNode(PrintNode node, Context& context, bool inFuntion) {
+	RuntimeResult visitOutputNode(OutputNode node, Context& context, bool inFuntion) {
 		RuntimeResult result = RuntimeResult();
 
-		if (node.object == nullptr) {
-			std::cout << "\n";
-			return result.success(InterpretedValue(std::string("newline")));
+		if (node.type == 0) {
+			if (node.object == nullptr) {
+				std::cout << "\n";
+				return result.success(InterpretedValue(std::string("newline"), node.startPos, node.endPos));
+			}
+
+			InterpretedValue valueToPrint = result.Register(this->visit(*node.object, context, inFuntion));
+
+			if (node.printLine)
+				std::cout << valueToPrint.toString(true) << "\n";
+			else std::cout << valueToPrint.toString(true);
+			return result.success(valueToPrint);
 		}
+		else {
 
-		InterpretedValue valueToPrint = result.Register(this->visit(*node.object, context, inFuntion));
+			InterpretedValue commandToExecute = result.Register(this->visit(*node.object, context, inFuntion));
 
-		if (node.printLine)
-			std::cout << valueToPrint.toString(true) << "\n";
-		else std::cout << valueToPrint.toString(true);
-		return result.success(valueToPrint);
+			system(commandToExecute.toString(true).c_str());
+			return result.success(commandToExecute);
+		}
 	}
 	
 	RuntimeResult visitInputNode(InputNode node, Context& context, bool inFuntion) {
@@ -753,20 +773,17 @@ public:
 
 		std::string string = stdcin();
 
-		return result.success(InterpretedValue(string));
+		return result.success(InterpretedValue(string, node.startPos, node.endPos));
 	}
 	
 	RuntimeResult visitInterruptionNode(InterruptionNode node, Context& context, bool inFuntion) {
-		return RuntimeResult().failure(RuntimeError("Can't '" + node.toString() + "' here", Position(), Position()));
+		return RuntimeResult().failure(RuntimeError("Can't '" + node.toString() + "' here", node.startPos, node.endPos));
 	}
 
 };
 
-Context Interpreter::context = Context();
-
-RuntimeResult Function::execute(std::vector<InterpretedValue> arguments) {
+RuntimeResult Function::execute(std::vector<InterpretedValue> arguments, Context& context) {
 	RuntimeResult result = RuntimeResult();
-	Context context = mInterpreter->context;
 	Context newContext;
 	newContext.symbolTable.parentTable = &context.symbolTable;
 

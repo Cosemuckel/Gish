@@ -115,14 +115,14 @@ public:
 				s = true;
 			}
 			if (!s)
-				return result.failure(InvalidSyntaxError("Missing a ';'" + this->currentToken.toString(), this->currentToken.startPos, this->currentToken.endPos));
+				return result.failure(InvalidSyntaxError("Missing a semicolon ';'" + this->lastToken.toString(), this->lastToken.startPos, this->lastToken.endPos));
 			Node* rNode = new Node(node);
-			allocationsToClear.push_back(rNode);
+			GloabalAllocator.registerAllocation(rNode);
 			statements.push_back(rNode);
 		}
 		REG_ADVANCE;
 		ListNode* l = new ListNode(statements);
-		allocationsToClear.push_back(l);
+		GloabalAllocator.registerAllocation(l);
 		return result.success(l);
 	}
 
@@ -133,14 +133,31 @@ public:
 			Node* value = new Node(result.Register(this->expression(tok)));
 			RET_ERROR;
 			ReturnNode* node = new ReturnNode(value);
-			allocationsToClear.push_back(value);
-			allocationsToClear.push_back(node);
+			GloabalAllocator.registerAllocation(value);
+			GloabalAllocator.registerAllocation(node);
 			return result.success(node);			
 		}
 		if (this->currentToken.matches(TT_PRINT)) {
 			ParserResult result = ParserResult();
 			REG_ADVANCE;
 			bool nl = false;
+			if (this->currentToken.matches(TT_A)) {
+				REG_ADVANCE;
+				if (!this->currentToken.matches(TT_KEYWORD_NEWLINE))
+					return result.failure(InvalidSyntaxError("Expexted 'newline'" + this->currentToken.toString(), this->currentToken.startPos, this->currentToken.endPos));
+				REG_ADVANCE;
+				OutputNode* node = new OutputNode(nullptr, true, 0);
+				GloabalAllocator.registerAllocation(node);
+				return result.success(node);
+			}
+			Node* value;
+			if (this->currentToken.matches(TT_NOTHING)) {
+				REG_ADVANCE;
+				StringNode* node = new StringNode(Token(TT_STRING, Value(std::string(""))));
+				GloabalAllocator.registerAllocation(node);
+				value = new Node(node);
+			}
+			else value = new Node(result.Register(this->expression(tok)));
 			if (this->currentToken.matches(TT_WITH)) {
 				REG_ADVANCE;
 				if (!this->currentToken.matches(TT_KEYWORD_NEWLINE))
@@ -148,21 +165,37 @@ public:
 				REG_ADVANCE;
 				nl = true;
 			}
-			if (this->currentToken.matches(TT_A)) {
-				REG_ADVANCE;
-				if (!this->currentToken.matches(TT_KEYWORD_NEWLINE))
-					return result.failure(InvalidSyntaxError("Expexted 'newline'" + this->currentToken.toString(), this->currentToken.startPos, this->currentToken.endPos));
-				REG_ADVANCE;
-				PrintNode* node = new PrintNode(nullptr, true);
-				allocationsToClear.push_back(node);
-				return result.success(node);
-			}
-			Node* value = new Node(result.Register(this->expression(tok)));
 			RET_ERROR;
-			PrintNode* node = new PrintNode(value, nl);
-			allocationsToClear.push_back(value);
-			allocationsToClear.push_back(node);
+			OutputNode* node = new OutputNode(value, nl, 0);
+			GloabalAllocator.registerAllocation(value);
+			GloabalAllocator.registerAllocation(node);
 			return result.success(node);			
+		}
+		if (this->currentToken.matches(TT_EXECUTE)) {
+			ParserResult result = ParserResult();
+			REG_ADVANCE;
+			bool nl = false;
+			Node* value;
+			if (this->currentToken.matches(TT_NOTHING)) {
+				REG_ADVANCE;
+				StringNode* node = new StringNode(Token(TT_STRING, Value(std::string(""))));
+				GloabalAllocator.registerAllocation(node);
+				value = new Node(node);
+			}
+			else {
+				if (!this->currentToken.matches(TT_THE))
+					return result.failure(InvalidSyntaxError("Expexted 'the'" + this->currentToken.toString(), this->currentToken.startPos, this->currentToken.endPos));
+				REG_ADVANCE;
+				if (!this->currentToken.matches(TT_COMMAND))
+					return result.failure(InvalidSyntaxError("Expexted 'command'" + this->currentToken.toString(), this->currentToken.startPos, this->currentToken.endPos));
+				REG_ADVANCE;
+				value = new Node(result.Register(this->expression(tok)));
+			}
+			RET_ERROR;
+			OutputNode* node = new OutputNode(value, nl, 1);
+			GloabalAllocator.registerAllocation(value);
+			GloabalAllocator.registerAllocation(node);
+			return result.success(node);
 		}
 		if (this->currentToken.matches(TT_KEYWORD_UNDEFINE)) {
 			ParserResult result = ParserResult();
@@ -182,7 +215,7 @@ public:
 			Token varNameToken = this->currentToken;
 			REG_ADVANCE;
 			UndefineNode* node = new UndefineNode(type, varNameToken);
-			allocationsToClear.push_back(node);
+			GloabalAllocator.registerAllocation(node);
 			return result.success(node);
 		}
 
@@ -197,7 +230,7 @@ public:
 			if (this->currentToken.matches(TT_NOTHING)) {
 				REG_ADVANCE;
 				ListNode* node = new ListNode({});
-				allocationsToClear.push_back(node);
+				GloabalAllocator.registerAllocation(node);
 				body = new Node(node);
 			}
 			else if (!this->currentToken.matches(TT_L_CURLY_PAREN)) {
@@ -207,16 +240,16 @@ public:
 				REG_ADVANCE;
 				body = new Node(result.Register(this->multiStatementExpression(tok, TT_R_CURLY_PAREN)));
 			}
-			allocationsToClear.push_back(body);
+			GloabalAllocator.registerAllocation(body);
 			RET_ERROR;
 			if (this->currentToken.matches(TT_KEYWORD_IF)) {
 				REG_ADVANCE;
 				Node* condition = new Node(result.Register(this->expression(tok)));
-				allocationsToClear.push_back(condition);
+				GloabalAllocator.registerAllocation(condition);
 				RET_ERROR;
 				if (!this->currentToken.matches(TT_COMMA)) {
 					IfNode* node = new IfNode(condition, body, nullptr);
-					allocationsToClear.push_back(node);
+					GloabalAllocator.registerAllocation(node);
 					return result.success(node);
 				}
 				REG_ADVANCE;
@@ -228,38 +261,38 @@ public:
 						if (!this->currentToken.matches(TT_KEYWORD_DO))
 							return result.failure(InvalidSyntaxError("Expected 'do'", this->currentToken.startPos, this->currentToken.endPos));
 						elseStatement = new Node(result.Register(this->unusableExpression(tok)));
-						allocationsToClear.push_back(elseStatement);
+						GloabalAllocator.registerAllocation(elseStatement);
 					}
 					else {
 						REG_ADVANCE; 
 						if (!this->currentToken.matches(TT_KEYWORD_DO))
 							return result.failure(InvalidSyntaxError("Expected 'do'", this->currentToken.startPos, this->currentToken.endPos));
 						elseStatement = new Node(result.Register(this->multiStatementExpression(tok, TT_R_CURLY_PAREN)));
-						allocationsToClear.push_back(elseStatement);
+						GloabalAllocator.registerAllocation(elseStatement);
 					}
 					IfNode* node = new IfNode(condition, body, elseStatement);
-					allocationsToClear.push_back(node);
+					GloabalAllocator.registerAllocation(node);
 					return result.success(node);
 				}
 				IfNode* node = new IfNode(condition, body, nullptr);
-				allocationsToClear.push_back(node);
+				GloabalAllocator.registerAllocation(node);
 				return result.success(node);
 			}			
 			if (this->currentToken.matches(TT_KEYWORD_FOR)) {
 				REG_ADVANCE;
 				Node* amount = new Node(result.Register(this->expression(tok)));
-				allocationsToClear.push_back(amount);
+				GloabalAllocator.registerAllocation(amount);
 				RET_ERROR;
 				if (this->currentToken.matches(TT_KEYWORD_ITERATIONS)) {
 					REG_ADVANCE;
 					IterationNode* node = new IterationNode(amount, body);
-					allocationsToClear.push_back(node);
+					GloabalAllocator.registerAllocation(node);
 					return result.success(node);
 				}
 				if (this->currentToken.matches(TT_KEYWORD_SECONDS)) {
 					REG_ADVANCE;
 					TimedIterationNode* node = new TimedIterationNode(amount, body);
-					allocationsToClear.push_back(node);
+					GloabalAllocator.registerAllocation(node);
 					return result.success(node);
 				}
 				return result.failure(InvalidSyntaxError("Expected 'iterations' or 'seconds'", this->currentToken.startPos, this->currentToken.endPos));
@@ -279,7 +312,7 @@ public:
 			if (this->currentToken.matches(TT_KEYWORD_INDEX)) {
 				REG_ADVANCE;
 				Node* index = new Node(result.Register(this->expression(tok)));
-				allocationsToClear.push_back(index);
+				GloabalAllocator.registerAllocation(index);
 				RET_ERROR;
 				if (!this->currentToken.matches(TT_OF))
 					return result.failure(InvalidSyntaxError("Expected 'of'", this->currentToken.startPos, this->currentToken.endPos));
@@ -295,15 +328,15 @@ public:
 					return result.failure(InvalidSyntaxError("Expected 'to'", this->currentToken.startPos, this->currentToken.endPos));
 				REG_ADVANCE;
 				Node* expression = new Node(result.Register(this->expression(tok)));
-				allocationsToClear.push_back(expression);
+				GloabalAllocator.registerAllocation(expression);
 				RET_ERROR;
 				VarIndexReAssignNode* node = new VarIndexReAssignNode(variableName, expression, index);
-				allocationsToClear.push_back(node);
+				GloabalAllocator.registerAllocation(node);
 				return result.success(node);
 			}
 
 			if (!this->currentToken.matches(TT_IDENTIFIER))
-				return result.failure(InvalidSyntaxError("Expected identifier", this->currentToken.startPos, this->currentToken.endPos)); 
+				return result.failure(InvalidSyntaxError("Expected identifier", this->currentToken.startPos, this->currentToken.endPos));
 			Token variableName = this->currentToken;
 			REG_ADVANCE;
 			if (!this->currentToken.matches(TT_EQUAL))
@@ -313,10 +346,10 @@ public:
 				return result.failure(InvalidSyntaxError("Expected 'to'", this->currentToken.startPos, this->currentToken.endPos));
 			REG_ADVANCE;
 			Node* expression = new Node(result.Register(this->expression(tok)));
-			allocationsToClear.push_back(expression);
+			GloabalAllocator.registerAllocation(expression);
 			RET_ERROR;
 			VarReAssignNode* node = new VarReAssignNode(variableName, expression);
-			allocationsToClear.push_back(node);
+			GloabalAllocator.registerAllocation(node);
 			return result.success(node);
 		}
 		if (contains({ TT_SQUARE, TT_CUBE }, this->currentToken.type)) {
@@ -326,32 +359,17 @@ public:
 				return result.failure(InvalidSyntaxError("Expected identifier", this->currentToken.startPos, this->currentToken.endPos));
 			Token variableName = this->currentToken;
 			REG_ADVANCE;
-			if (token.matches(TT_SQUARE)) {
-				VarAccessNode* _n = new VarAccessNode(variableName);
-				NumberNode* _nm = new NumberNode(Token(TT_INT, Value(Number(2))));
-				Node* n = new Node(_n);
-				Node* nm = new Node(_nm);
-				BinaryNode* b = new BinaryNode(Token(TT_POW), n, nm);
-				allocationsToClear.push_back(_n);
-				allocationsToClear.push_back(_nm);
-				allocationsToClear.push_back(n);
-				allocationsToClear.push_back(nm);
-				allocationsToClear.push_back(b);
-				return result.success(b);
-			}
-			if (token.matches(TT_CUBE)) {
-				VarAccessNode* _n = new VarAccessNode(variableName);
-				NumberNode* _nm = new NumberNode(Token(TT_INT, Value(Number(3))));
-				Node* n = new Node(_n);
-				Node* nm = new Node(_nm);
-				BinaryNode* b = new BinaryNode(Token(TT_POW), n, nm);
-				allocationsToClear.push_back(_n);
-				allocationsToClear.push_back(_nm);
-				allocationsToClear.push_back(n);
-				allocationsToClear.push_back(nm);
-				allocationsToClear.push_back(b);
-				return result.success(b);
-			}
+			VarAccessNode* _n = new VarAccessNode(variableName);
+			NumberNode* _nm = new NumberNode(Token(TT_INT, Value(Number(token.matches(TT_SQUARE) ? 2 : 3))));
+			Node* n = new Node(_n);
+			Node* nm = new Node(_nm);
+			BinaryNode* b = new BinaryNode(Token(TT_POW), n, nm);
+			GloabalAllocator.registerAllocation(_n);
+			GloabalAllocator.registerAllocation(_nm);
+			GloabalAllocator.registerAllocation(n);
+			GloabalAllocator.registerAllocation(nm);
+			GloabalAllocator.registerAllocation(b);
+			return result.success(b);
 		}
 		if (contains({ TT_ADD, TT_SUB, TT_MULTIPLY, TT_DIVIDE }, this->currentToken.type)) {
 			Token token = this->currentToken;
@@ -359,8 +377,8 @@ public:
 			Token variableName = null;
 			Node* node = nullptr;
 			if (token.matches(TT_ADD) || token.matches(TT_SUB)) {
-				node =  new Node(result.Register(this->expression(tok)));
-				allocationsToClear.push_back(node);
+				node = new Node(result.Register(this->expression(tok)));
+				GloabalAllocator.registerAllocation(node);
 				RET_ERROR;
 			}
 			else if (!this->currentToken.matches(TT_IDENTIFIER))
@@ -388,7 +406,7 @@ public:
 			REG_ADVANCE;
 			if (token.matches(TT_MULTIPLY) || token.matches(TT_DIVIDE)) {
 				node = new Node(result.Register(this->expression(tok)));
-				allocationsToClear.push_back(node);
+				GloabalAllocator.registerAllocation(node);
 				RET_ERROR;
 			}
 			else if (!this->currentToken.matches(TT_IDENTIFIER))
@@ -397,58 +415,18 @@ public:
 				variableName = this->currentToken;
 				REG_ADVANCE;
 			}
-			if (token.matches(TT_ADD)) {
-				VarAccessNode* _n = new VarAccessNode(variableName);
-				Node* n = new Node(_n);
-				BinaryNode* b = new BinaryNode(Token(TT_PLUS), n, node);
-				Node* bn = new Node(b);
-				allocationsToClear.push_back(_n);
-				allocationsToClear.push_back(n);
-				allocationsToClear.push_back(b);
-				allocationsToClear.push_back(bn);
-				VarReAssignNode* node = new VarReAssignNode(variableName, bn);
-				allocationsToClear.push_back(node);
-				return result.success(node);
-			}
-			if (token.matches(TT_SUB)) {
-				VarAccessNode* _n = new VarAccessNode(variableName);
-				Node* n = new Node(_n);
-				BinaryNode* b = new BinaryNode(Token(TT_MINUS), n, node);
-				Node* bn = new Node(b);
-				allocationsToClear.push_back(_n);
-				allocationsToClear.push_back(n);
-				allocationsToClear.push_back(b);
-				allocationsToClear.push_back(bn);
-				VarReAssignNode* node = new VarReAssignNode(variableName, bn);
-				allocationsToClear.push_back(node);
-				return result.success(node);
-			}
-			if (token.matches(TT_MULTIPLY)) {
-				VarAccessNode* _n = new VarAccessNode(variableName);
-				Node* n = new Node(_n);
-				BinaryNode* b = new BinaryNode(Token(TT_MULT), n, node);
-				Node* bn = new Node(b);
-				allocationsToClear.push_back(_n);
-				allocationsToClear.push_back(n);
-				allocationsToClear.push_back(b);
-				allocationsToClear.push_back(bn);
-				VarReAssignNode* node = new VarReAssignNode(variableName, bn);
-				allocationsToClear.push_back(node);
-				return result.success(node);
-			}
-			if (token.matches(TT_DIVIDE)) {
-				VarAccessNode* _n = new VarAccessNode(variableName);
-				Node* n = new Node(_n);
-				BinaryNode* b = new BinaryNode(Token(TT_DIV), n, node);
-				Node* bn = new Node(b);
-				allocationsToClear.push_back(_n);
-				allocationsToClear.push_back(n);
-				allocationsToClear.push_back(b);
-				allocationsToClear.push_back(bn);
-				VarReAssignNode* node = new VarReAssignNode(variableName, bn);
-				allocationsToClear.push_back(node);
-				return result.success(node);
-			}
+			TokenType opToken = token.matches(TT_ADD) ? TT_PLUS : token.matches(TT_SUB) ? TT_MINUS : token.matches(TT_MULTIPLY) ? TT_MULT : TT_DIV;
+			VarAccessNode* _n = new VarAccessNode(variableName);
+			Node* n = new Node(_n);
+			BinaryNode* b = new BinaryNode(Token(opToken), n, node);
+			Node* bn = new Node(b);
+			GloabalAllocator.registerAllocation(_n);
+			GloabalAllocator.registerAllocation(n);
+			GloabalAllocator.registerAllocation(b);
+			GloabalAllocator.registerAllocation(bn);
+			VarReAssignNode* node2 = new VarReAssignNode(variableName, bn);
+			GloabalAllocator.registerAllocation(node2);
+			return result.success(node2);
 		}
 		return this->varIntroducingExpression(tok);
 	}
@@ -469,10 +447,10 @@ public:
 					return result.failure(InvalidSyntaxError("Can't create Void-variable", this->currentToken.startPos, this->currentToken.endPos));
 				REG_ADVANCE;
 				Node* expression = new Node(result.Register(this->varIntroducingExpression(tok)));
-				allocationsToClear.push_back(expression);
+				GloabalAllocator.registerAllocation(expression);
 				RET_ERROR;
 				VarAssignNode* n = new VarAssignNode(variableName, expression, type);
-				allocationsToClear.push_back(n);
+				GloabalAllocator.registerAllocation(n);
 				return result.success(n);
 			}
 			REG_ADVANCE;
@@ -485,9 +463,9 @@ public:
 					return result.failure(InvalidSyntaxError("Expected '{'", this->currentToken.startPos, this->currentToken.endPos));
 				REG_ADVANCE;
 				Node* body = new Node(result.Register(this->multiStatementExpression(tok, TT_R_CURLY_PAREN)));
-				allocationsToClear.push_back(body);
+				GloabalAllocator.registerAllocation(body);
 				FunctionDefinitionNode* node = new FunctionDefinitionNode({}, variableName, type, body);
-				allocationsToClear.push_back(node);
+				GloabalAllocator.registerAllocation(node);
 				return result.success(node);
 			}
 			else {
@@ -514,9 +492,9 @@ public:
 					return result.failure(InvalidSyntaxError("Expected '{'", this->currentToken.startPos, this->currentToken.endPos));
 				REG_ADVANCE;
 				Node* body = new Node(result.Register(this->multiStatementExpression(tok, TT_R_CURLY_PAREN)));
-				allocationsToClear.push_back(body);
+				GloabalAllocator.registerAllocation(body);
 				FunctionDefinitionNode* node = new FunctionDefinitionNode(arguments, variableName, type, body);
-				allocationsToClear.push_back(node);
+				GloabalAllocator.registerAllocation(node);
 				return result.success(node);
 			}
 			return result.failure(InvalidSyntaxError("Expected 'nothing'", this->currentToken.startPos, this->currentToken.endPos));
@@ -540,10 +518,10 @@ public:
 				return result.failure(InvalidSyntaxError("Expected 'equals'", this->currentToken.startPos, this->currentToken.endPos));
 			REG_ADVANCE;
 			Node* expression = new Node(result.Register(this->varIntroducingExpression(tok)));
-			allocationsToClear.push_back(expression);
+			GloabalAllocator.registerAllocation(expression);
 			RET_ERROR;
 			VarAssignNode* node = new VarAssignNode(variableName, expression, Value::valueType::Array);
-			allocationsToClear.push_back(node);
+			GloabalAllocator.registerAllocation(node);
 			return result.success(node);
 		}
 		return this->expression(tok);
@@ -553,7 +531,7 @@ public:
 		ParserResult result = ParserResult();
 		Token opToken = null;
 		Node* left = new Node(result.Register(this->normalExpression(tok)));
-		allocationsToClear.push_back(left);
+		GloabalAllocator.registerAllocation(left);
 		RET_ERROR;
 		bool NOT = false;
 		if (this->currentToken.matches(TT_IS)) {
@@ -573,10 +551,10 @@ public:
 				this->advance();
 				result.regAdvance();
 				Node* right = new Node(result.Register(this->normalExpression(tok)));
-				allocationsToClear.push_back(right);
+				GloabalAllocator.registerAllocation(right);
 				RET_ERROR;
 				BinaryNode* node = new BinaryNode(opToken, left, right);
-				allocationsToClear.push_back(node);
+				GloabalAllocator.registerAllocation(node);
 				return result.success(node);
 			}
 			if (this->currentToken.matches(TT_GREAT) || this->currentToken.matches(TT_SMALL)) {
@@ -596,11 +574,11 @@ public:
 					return result.failure(InvalidSyntaxError("Expexted 'to'", this->currentToken.startPos, this->currentToken.endPos));
 				REG_ADVANCE;
 				Node* right = new Node(result.Register(this->normalExpression(tok)));
-				allocationsToClear.push_back(right);
+				GloabalAllocator.registerAllocation(right);
 				RET_ERROR;
 				opToken = orEqual ? token.matches(TT_GREAT) ? Token(TT_GREAT_EQ, Value(Bool(NOT))) : Token(TT_SMALL_EQ, Value(Bool(NOT))) : token.matches(TT_GREAT) ? Token(TT_GREAT, Value(Bool(NOT))) : Token(TT_SMALL, Value(Bool(NOT)));
 				BinaryNode* node = new BinaryNode(opToken, left, right);
-				allocationsToClear.push_back(node);
+				GloabalAllocator.registerAllocation(node);
 				return result.success(node);
 			}
 			return result.failure(InvalidSyntaxError("Expected ('not' followed by) 'equal to' or 'greater', 'smaller', 'greaterEqual' or 'smallerEqual' followed by 'than'", this->currentToken.startPos, this->currentToken.endPos));
@@ -619,10 +597,10 @@ public:
 		ParserResult result = ParserResult();
 
 		if (this->currentToken.matches(TT_KEYWORD_BREAK) || this->currentToken.matches(TT_KEYWORD_CONTINUE)) {
-			short t = this->currentToken.matches(TT_KEYWORD_CONTINUE) ? 0 : 1;
+			Token token = this->currentToken;
 			REG_ADVANCE;
-			Node node = Node(new InterruptionNode(t));
-			allocationsToClear.push_back(node.nodePtr);
+			Node node = Node(new InterruptionNode(token));
+			GloabalAllocator.registerAllocation(node.nodePtr);
 			return result.success(node);
 		}
 
@@ -638,12 +616,12 @@ public:
 			this->advance();
 			result.regAdvance();
 			Node* binOp = new Node(result.Register(this->term(tok)));
-			allocationsToClear.push_back(binOp);
+			GloabalAllocator.registerAllocation(binOp);
 			RET_ERROR;
 			if (token.matches(TT_PLUS))
 				return result.success(*binOp);
 			UnaryNode* node = new UnaryNode(token, binOp);
-			allocationsToClear.push_back(node);
+			GloabalAllocator.registerAllocation(node);
 			return result.success(node);
 		}
 		return this->binaryOperation("factor", { TT_MULT, TT_DIV }, false, tok);
@@ -656,33 +634,19 @@ public:
 	ParserResult atom(Token tok) {
 		ParserResult result = ParserResult();
 		Node* left = new Node(result.Register(this->nucleus(tok)));
-		allocationsToClear.push_back(left);
+		GloabalAllocator.registerAllocation(left);
 		RET_ERROR;
 		while (this->currentToken.matches(TT_SQUARED) || this->currentToken.matches(TT_CUBED)) {
-			if (this->currentToken.matches(TT_SQUARED)) {
-				this->advance();
-				result.regAdvance();
-				NumberNode* nn = new NumberNode(Token(TT_INT, Value(Number(2)), this->lastToken.startPos, this->currentToken.endPos));
-				Node* n = new Node(nn);
-				BinaryNode* bn = new BinaryNode(Token(TT_POW), left, n);
-				allocationsToClear.push_back(nn);
-				allocationsToClear.push_back(n);
-				allocationsToClear.push_back(nn);
-				left = new Node(bn);
-				allocationsToClear.push_back(left);
-			}
-			if (this->currentToken.matches(TT_CUBED)) {
-				this->advance();
-				result.regAdvance();
-				NumberNode* nn = new NumberNode(Token(TT_INT, Value(Number(3)), this->lastToken.startPos, this->currentToken.endPos));
-				Node* n = new Node(nn);
-				BinaryNode* bn = new BinaryNode(Token(TT_POW), left, n);
-				allocationsToClear.push_back(nn);
-				allocationsToClear.push_back(n);
-				allocationsToClear.push_back(nn);
-				left = new Node(bn);
-				allocationsToClear.push_back(left);
-			}
+			this->advance();
+			result.regAdvance();
+			NumberNode* nn = new NumberNode(Token(TT_INT, Value(Number(this->currentToken.matches(TT_SQUARED) ? 2 : 3)), this->lastToken.startPos, this->currentToken.endPos));
+			Node* n = new Node(nn);
+			BinaryNode* bn = new BinaryNode(Token(TT_POW), left, n);
+			GloabalAllocator.registerAllocation(nn);
+			GloabalAllocator.registerAllocation(n);
+			GloabalAllocator.registerAllocation(nn);
+			left = new Node(bn);
+			GloabalAllocator.registerAllocation(left);
 		}
 		return result.success(*left);
 	}
@@ -690,14 +654,14 @@ public:
 	ParserResult nucleus(Token tok) {
 		ParserResult result = ParserResult();
 		Node* node = new Node(result.Register(this->nucleon(tok)));
-		allocationsToClear.push_back(node);
+		GloabalAllocator.registerAllocation(node);
 		RET_ERROR;
 		while (this->currentToken.matches(TT_FAC)) {
 			REG_ADVANCE; 
 			UnaryNode* bn = new UnaryNode(Token(TT_FAC), node);
 			node = new Node(bn);
-			allocationsToClear.push_back(bn);
-			allocationsToClear.push_back(node);
+			GloabalAllocator.registerAllocation(bn);
+			GloabalAllocator.registerAllocation(node);
 		}
 		return result.success(*node);
 	}
@@ -722,11 +686,11 @@ public:
 				}
 				REG_ADVANCE; 
 				FunctionCallNode* node = new FunctionCallNode(arguments, token);
-				allocationsToClear.push_back(node);
+				GloabalAllocator.registerAllocation(node);
 				return result.success(node);
 			}
 			VarAccessNode* node = new VarAccessNode(token);
-			allocationsToClear.push_back(node);
+			GloabalAllocator.registerAllocation(node);
 			return result.success(node);
 		}
 		if (token.matches(TT_KEYWORD_TYPEOF) || token.matches(TT_KEYWORD_SIZEOF)) {
@@ -738,7 +702,7 @@ public:
 			this->advance();
 			result.regAdvance();
 			PropertyNode* node = new PropertyNode(token, !token.matches(TT_KEYWORD_TYPEOF));
-			allocationsToClear.push_back(node);
+			GloabalAllocator.registerAllocation(node);
 			return result.success(node);
 		}
 		if (token.matches(TT_INT) || token.matches(TT_DOUBLE)) {
@@ -746,8 +710,8 @@ public:
 			result.regAdvance();
 			NumberNode* nn = new NumberNode(token);
 			Node* node = new Node(nn);
-			allocationsToClear.push_back(node);
-			allocationsToClear.push_back(nn);
+			GloabalAllocator.registerAllocation(node);
+			GloabalAllocator.registerAllocation(nn);
 			return result.success(*node);
 		}
 		if (token.matches(TT_STRING)) {
@@ -755,8 +719,8 @@ public:
 			result.regAdvance();
 			StringNode* sn = new StringNode(token);
 			Node* node = new Node(sn);
-			allocationsToClear.push_back(node);
-			allocationsToClear.push_back(sn);
+			GloabalAllocator.registerAllocation(node);
+			GloabalAllocator.registerAllocation(sn);
 			return result.success(*node);
 		}
 		if (token.matches(TT_BOOLEAN)) {
@@ -764,8 +728,8 @@ public:
 			result.regAdvance();
 			BooleanNode* bn = new BooleanNode(token);
 			Node* node = new Node(bn);
-			allocationsToClear.push_back(node);
-			allocationsToClear.push_back(bn);
+			GloabalAllocator.registerAllocation(node);
+			GloabalAllocator.registerAllocation(bn);
 			return result.success(*node);
 		}
 		if (token.matches(TT_L_SQUARE_PAREN)) {
@@ -785,7 +749,7 @@ public:
 			this->advance();
 			result.regAdvance();
 			ArrayNode* an = new ArrayNode(nodes, token);
-			allocationsToClear.push_back(an);
+			GloabalAllocator.registerAllocation(an);
 			return result.success(an);
 		}
 		if (token.matches(TT_L_PAREN)) {
@@ -813,7 +777,7 @@ public:
 			Token variableName = this->currentToken;
 			REG_ADVANCE;
 			VarIndexAccessNode* node = new VarIndexAccessNode(variableName, index, !token.matches(TT_KEYWORD_INDEX));
-			allocationsToClear.push_back(node);
+			GloabalAllocator.registerAllocation(node);
 			return result.success(node);
 
 		}
@@ -829,7 +793,7 @@ public:
 				return result.failure(InvalidSyntaxError("Expected 'console'", this->currentToken.startPos, this->currentToken.endPos));
 			REG_ADVANCE;
 			InputNode* node = new InputNode();
-			allocationsToClear.push_back(node);
+			GloabalAllocator.registerAllocation(node);
 			return result.success(node);
 		}
 		return result.failure(InvalidSyntaxError("Expected int, float, string, boolean, identifier, '+', '-' or '('", this->currentToken.startPos, this->currentToken.endPos));
@@ -837,7 +801,7 @@ public:
 
 	ParserResult binaryOperation(std::string function, std::vector<TokenType> operators, std::string function2, bool required, Token tok) {
 		Node* left = new Node();
-		allocationsToClear.push_back(left);
+		GloabalAllocator.registerAllocation(left);
 		ParserResult result = ParserResult();
 		if (function == "compareExpression") left = new Node(result.Register(this->compareExpression(tok)));
 		if (function == "normalExpression") left = new Node(result.Register(this->normalExpression(tok)));
@@ -846,7 +810,7 @@ public:
 		if (function == "factor") left = new Node(result.Register(this->factor(tok)));
 		if (function == "atom") left = new Node(result.Register(this->atom(tok)));
 		if (function == "nucleus") left = new Node(result.Register(this->nucleus(tok)));
-		allocationsToClear.push_back(left);
+		GloabalAllocator.registerAllocation(left);
 		RET_ERROR;
 
 		int adv = 0;
@@ -856,7 +820,7 @@ public:
 			result.regAdvance();
 			adv++;
 			Node* right = new Node();
-			allocationsToClear.push_back(right);
+			GloabalAllocator.registerAllocation(right);
 			if (function2 == "compareExpression") right = new Node(result.Register(this->compareExpression(tok)));
 			if (function2 == "normalExpression") right = new Node(result.Register(this->normalExpression(tok)));
 			if (function2 == "expression") right = new Node(result.Register(this->expression(tok)));
@@ -864,12 +828,12 @@ public:
 			if (function2 == "factor") right = new Node(result.Register(this->factor(tok)));
 			if (function2 == "atom") right = new Node(result.Register(this->atom(tok)));
 			if (function2 == "nucleus") right = new Node(result.Register(this->nucleus(tok)));
-			allocationsToClear.push_back(right);
+			GloabalAllocator.registerAllocation(right);
 			RET_ERROR;
 			BinaryNode* bn = new BinaryNode(opToken, left, right);
 			left = new Node(bn);
-			allocationsToClear.push_back(left);
-			allocationsToClear.push_back(bn);
+			GloabalAllocator.registerAllocation(left);
+			GloabalAllocator.registerAllocation(bn);
 		}
 		if (adv == 0 && required);
 		return result.success(*left);
