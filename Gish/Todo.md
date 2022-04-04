@@ -14,6 +14,7 @@
 
 ###
 	* positions in nodes and interpreted values;
+	* update Error messages
 
 ###
 	
