@@ -47,15 +47,15 @@
     <ClInclude Include="src\Interpreter.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
-    <ClInclude Include="src\Commenter.h">
+    <ClInclude Include="src\Gish.hpp">
       <Filter>Headerdateien</Filter>
     </ClInclude>
-    <ClInclude Include="src\Gish.hpp">
+    <ClInclude Include="src\Allocator.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <Text Include="text.txt" />
+    <Text Include="text.gish" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Todo.md" />

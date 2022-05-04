@@ -287,6 +287,20 @@ public:
 		return this->Name + ":" + this->body.toString();
 	}
 
+	std::string argumentString() {
+		if (this->arguments.size() == 0)
+			return "";
+		std::string out;
+		for (int i = 0; i < this->arguments.size(); i++) {
+			out += Value::Name(this->arguments[i].type);
+			out += " ";
+			out += this->arguments[i].Name;
+			if (i != this->arguments.size() - 1)
+				out += ", ";
+		}
+		return out;
+	}
+
 	void clear() {
 		this->arguments.clear();
 		this->mAllocations.clearAllAllocations();
@@ -347,15 +361,13 @@ public:
 
 	}
 
-	Function get(std::string key) {
-		Function value;
+	Function* get(std::string key) {
 		try {
-			value = this->symbols.at(key);
+			return &this->symbols.at(key);
 		}
 		catch (std::out_of_range) {
-			return Function(null);
+			return nullptr;
 		}
-		return value;
 	}
 
 	void set(std::string name, Function& value) {
@@ -522,7 +534,7 @@ public:
 		std::string variableName = node.varNameToken.value.cString;
 		InterpretedValue variable = context.symbolTable.get(variableName);
 		if (variable == null)
-			return result.failure(RuntimeError(std::string("'") + variableName + "' is not defined", node.startPos, node.endPos));
+			return result.failure(RuntimeError(std::string("Variable '") + variableName + "' is not defined", node.startPos, node.endPos));
 		if (!node.type)
 			return result.success(InterpretedValue(variable.Name(), node.startPos, node.endPos));
 		if (variable.type != Value::valueType::Array && variable.type != Value::valueType::String)
@@ -537,9 +549,9 @@ public:
 		RET_ERROR;
 		RET_RETA(value);
 		if (context.symbolTable.get(variableName) != null)
-			return result.failure(RuntimeError(std::string("'") + variableName + "' is already defined", node.startPos, node.endPos));
+			return result.failure(RuntimeError(std::string("Variable '") + variableName + "' is already defined", node.startPos, node.endPos));
 		if (node.type != value.type)
-			return result.failure(RuntimeError(std::string("'") + variableName + "' is of type " + Value::Name(node.type) + " but value is of type " + value.Name(), node.startPos, node.endPos));
+			return result.failure(RuntimeError(std::string("Variable '") + variableName + "' is of type " + Value::Name(node.type) + " but value is of type " + value.Name(), node.startPos, node.endPos));
 		context.symbolTable.set(variableName, InterpretedValue(value));
 		return result.success(value);
 	}
@@ -551,9 +563,9 @@ public:
 		RET_ERROR;
 		RET_RETA(value);
 		if (context.symbolTable.get(variableName) == null)
-			return result.failure(RuntimeError(std::string("'") + variableName + "' is not defined", node.startPos, node.endPos));
+			return result.failure(RuntimeError(std::string("Variable '") + variableName + "' is not defined", node.startPos, node.endPos));
 		if (value.type != context.symbolTable.get(variableName).type)
-			return result.failure(RuntimeError(std::string("'") + variableName + "' is of type " + context.symbolTable.get(variableName).Name() + " but value is of type " + value.Name(), node.startPos, node.endPos));
+			return result.failure(RuntimeError(std::string("Variable '") + variableName + "' is of type " + context.symbolTable.get(variableName).Name() + " but value is of type " + value.Name(), node.startPos, node.endPos));
 		context.symbolTable.set(variableName, value);
 		return result.success(value);
 	}
@@ -562,15 +574,15 @@ public:
 		RuntimeResult result = RuntimeResult();
 		std::string variableName = node.varNameToken.value.cString;
 		if (context.symbolTable.get(variableName) == null)
-			return result.failure(RuntimeError(std::string("'") + variableName + "' is not defined", node.startPos, node.endPos));
+			return result.failure(RuntimeError(std::string("Variable '") + variableName + "' is not defined", node.startPos, node.endPos));
 		if (context.symbolTable.get(variableName).type != Value::valueType::Array)
-			return result.failure(RuntimeError(std::string("'") + variableName + "' is not of Array type", node.startPos, node.endPos));
+			return result.failure(RuntimeError(std::string("Variable '") + variableName + "' is not of Array type", node.startPos, node.endPos));
 		InterpretedValue index = result.Register(this->visit(*node.index, context, inFunction));
 		if (index.type != Value::valueType::Number)
 			return result.failure(RuntimeError("Can't read index '" + index.toString() + "' of '" + variableName + "' : index is of wrong type", node.startPos, node.endPos));
 		if (index.cNumber.type)
 			return result.failure(RuntimeError("Can't read index of type double: index '" + index.toString() + "' of '" + variableName + "'", node.startPos, node.endPos));
-		if ((long long)index.cNumber.value < 0 || (long long)index.cNumber.value >= context.symbolTable.get(variableName).cVector.size())
+		if ((long long)index.cNumber.value < 0 || unsigned long long((long long)index.cNumber.value) >= context.symbolTable.get(variableName).cVector.size())
 			return result.failure(RuntimeError("Can't read index '" + index.toString() + "' of '" + variableName + "' : index is out of range", node.startPos, node.endPos));
 		InterpretedValue value = result.Register(this->visit(*node.value, context, inFunction));
 		RET_ERROR;
@@ -584,7 +596,7 @@ public:
 		std::string variableName = node.varNameToken.value.cString;
 		InterpretedValue variable = context.symbolTable.get(variableName);
 		if (variable == null)
-			return result.failure(RuntimeError(std::string("'") + variableName + "' is not defined", node.startPos, node.endPos));
+			return result.failure(RuntimeError(std::string("Variable '") + variableName + "' is not defined", node.startPos, node.endPos));
 		return result.success(variable);
 	}
 
@@ -593,11 +605,11 @@ public:
 		std::string variableName = node.varNameToken.value.cString;
 		InterpretedValue variable = context.symbolTable.get(variableName);
 		if (variable == null)
-			return result.failure(RuntimeError(std::string("'") + variableName + "' is not defined", node.startPos, node.endPos));
+			return result.failure(RuntimeError(std::string("Variable '") + variableName + "' is not defined", node.startPos, node.endPos));
 		if (variable.type != Value::valueType::Array && node.type == 0)
-			return result.failure(RuntimeError(std::string("'") + variableName + "' is not of Array type", node.startPos, node.endPos));
+			return result.failure(RuntimeError(std::string("Variable '") + variableName + "' is not of Array type", node.startPos, node.endPos));
 		if (variable.type != Value::valueType::String && node.type == 1)
-			return result.failure(RuntimeError(std::string("'") + variableName + "' is not of String type", node.startPos, node.endPos));
+			return result.failure(RuntimeError(std::string("Variable '") + variableName + "' is not of String type", node.startPos, node.endPos));
 		InterpretedValue index = result.Register(this->visit(*node.index, context, inFunction));
 		if (index.type != Value::valueType::Number)
 			return result.failure(RuntimeError("Can't read index '" + index.toString() + "' of '" + variableName + "' : index is of wrong type", node.startPos, node.endPos));
@@ -605,11 +617,11 @@ public:
 			return result.failure(RuntimeError("Can't read index of type double: index '" + index.toString() + "' of '" + variableName + "'", node.startPos, node.endPos));
 
 		if (node.type == 0) {
-			if ((long long)index.cNumber.value < 0 || (long long)index.cNumber.value >= variable.cVector.size())
+			if ((long long)index.cNumber.value < 0 || unsigned long long((long long)index.cNumber.value) >= variable.cVector.size())
 				return result.failure(RuntimeError("Can't read index '" + index.toString() + "' of '" + variableName + "' : index is out of range", node.startPos, node.endPos));
 			return result.success(InterpretedValue(variable.cVector[(long long)index.cNumber.value], node.startPos, node.endPos));
 		}
-		if ((long long)index.cNumber.value < 0 || (long long)index.cNumber.value >= variable.cString.size())
+		if ((long long)index.cNumber.value < 0 || unsigned long long((long long)index.cNumber.value) >= variable.cString.size())
 			return result.failure(RuntimeError("Can't read character '" + index.toString() + "' of '" + variableName + "' : index is out of range", node.startPos, node.endPos));
 		return result.success(InterpretedValue(std::string("") + variable.cString[(long long)index.cNumber.value], node.startPos, node.endPos));
 	}
@@ -689,8 +701,8 @@ public:
 
 		std::string functionName = node.varNameToken.value.cString;
 
-		if (context.functionTable.get(functionName) != null)
-			return result.failure(RuntimeError(std::string("'") + functionName + "' is already defined", node.startPos, node.endPos));
+		if (context.functionTable.get(functionName) != nullptr)
+			return result.failure(RuntimeError(std::string("Function '") + functionName + "' is already defined", node.startPos, node.endPos));
 
 		std::vector<Argument> functionArguments = node.arguments;
 
@@ -703,8 +715,8 @@ public:
 		RuntimeResult result = RuntimeResult();		
 		std::vector<InterpretedValue> arguments;
 
-		if (context.functionTable.get(node.varNameToken.value.cString) == null)
-			return result.failure(RuntimeError(std::string("'") + node.varNameToken.value.cString + "' is not defined", node.startPos, node.endPos));
+		if (context.functionTable.get(node.varNameToken.value.cString) == nullptr)
+			return result.failure(RuntimeError(std::string("Function '") + node.varNameToken.value.cString + "' is not defined", node.startPos, node.endPos));
 
 		for (int i = 0; i < node.argumentsInOrder.size(); i++) {
 			arguments.push_back(result.Register(this->visit(*node.argumentsInOrder[i], context, inFunction)));
@@ -712,7 +724,7 @@ public:
 			RET_RET;
 		}
 
-		InterpretedValue returnedValue = result.Register(context.functionTable.get(node.varNameToken.value.cString).execute(arguments, context));
+		InterpretedValue returnedValue = result.Register(context.functionTable.get(node.varNameToken.value.cString)->execute(arguments, context));
 		RET_ERROR;
 		RET_RETA(returnedValue);
 		return result.success(returnedValue);
@@ -736,7 +748,7 @@ public:
 			context.symbolTable.remove(node.varNameToken.value.cString);
 		}
 		else {
-			if (context.functionTable.get(node.varNameToken.value.cString) == null)
+			if (context.functionTable.get(node.varNameToken.value.cString) == nullptr)
 				return result.failure(RuntimeError(std::string("'") + node.varNameToken.value.cString + "' is not defined", node.startPos, node.endPos));
 			context.functionTable.remove(node.varNameToken.value.cString);
 		}
@@ -753,6 +765,8 @@ public:
 			}
 
 			InterpretedValue valueToPrint = result.Register(this->visit(*node.object, context, inFuntion));
+			RET_ERROR;
+			RET_RETA(valueToPrint);
 
 			if (node.printLine)
 				std::cout << valueToPrint.toString(true) << "\n";
@@ -797,8 +811,7 @@ RuntimeResult Function::execute(std::vector<InterpretedValue> arguments, Context
 		newContext.symbolTable.set(this->arguments[i].Name, arguments[i]);
 	}
 
-	RuntimeResult rtResult = mInterpreter->visit(this->body, newContext, true);
-	InterpretedValue returnedResult = result.Register(rtResult);
+	InterpretedValue returnedResult = result.Register(mInterpreter->visit(this->body, newContext, true));
 
 	RET_ERROR;
 	if (!result.m_shouldReturn && this->returnType != Value::valueType::Void)

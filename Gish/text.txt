@@ -1,6 +1,0 @@
-
-Number sum taking Number s1, Number s2: {
-	return s1 plus s2;	
-};
-
-print sum (10, 20) with newline;

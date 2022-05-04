@@ -225,12 +225,22 @@ public:
 				result.push_back(token);
 				token.clear();
 			}			
-			else if (this->currentChar == '\n') { result.push_back(Token(TT_NEWLINE, this->position)); this->advance(); }
 
 			else if (this->currentChar == '+') { result.push_back(Token(TT_PLUS, this->position)); this->advance(); }
 			else if (this->currentChar == '-') { result.push_back(Token(TT_MINUS, this->position)); this->advance(); }
 			else if (this->currentChar == '*') { result.push_back(Token(TT_MULT, this->position)); this->advance(); }
-			else if (this->currentChar == '/') { result.push_back(Token(TT_DIV, this->position)); this->advance(); }
+			else if (this->currentChar == '/') { 
+				this->advance();
+				if (this->currentChar == '/') {
+					this->advance();
+					while (!(this->currentChar == '\n') || this->currentChar != 2)
+						this->advance();
+					continue;
+				}
+				else this->position.index -= 2;
+				this->advance();
+				result.push_back(Token(TT_DIV, this->position)); this->advance(); 
+			}
 			else if (this->currentChar == '!') { result.push_back(Token(TT_FAC, this->position)); this->advance(); }
 			else if (this->currentChar == '^') { result.push_back(Token(TT_POW, this->position)); this->advance(); }
 
@@ -265,12 +275,15 @@ public:
 			this->advance();
 		}
 		TokenType tokenType = null;
-		if (string == "plus")      tokenType = TT_PLUS;
+			 if (string == "plus")       tokenType = TT_PLUS;
 		else if (string == "minus")     tokenType = TT_MINUS;
 		else if (string == "times")     tokenType = TT_MULT;
 		else if (string == "over")      tokenType = TT_DIV;
 		else if (string == "factorial") tokenType = TT_FAC;
 		else if (string == "equals")    tokenType = TT_EQUALS;
+
+		else if (string == "true")  return Token(TT_BOOLEAN, Value(Bool(true)), startPos, this->position);
+		else if (string == "false") return Token(TT_BOOLEAN, Value(Bool(false)), startPos, this->position);
 
 		else if (string == "add")      tokenType = TT_ADD;
 		else if (string == "subtract") tokenType = TT_SUB;
@@ -345,7 +358,7 @@ public:
 		else if (string == "reference") tokenType = TT_REFERENCE;
 		else if (string == "taking")    tokenType = TT_TAKING;
 		else if (string == "nothing")   tokenType = TT_NOTHING;
-
+		
 		else tokenType = TT_IDENTIFIER;
 		if (tokenType.aClass != TT_IDENTIFIER.aClass)
 			return Token(tokenType, Value(null), startPos, this->position);

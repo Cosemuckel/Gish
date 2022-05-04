@@ -1,0 +1,20 @@
+
+100 * 100 + 10 factorial;
+print 100 * 100 + 10 factorial with newline;
+
+Number n equals 100 * 100 + 10 factorial;
+String s equals "AHHDAD";
+
+String s taking Number n: {
+	
+	do return 0 if (n is equal to 0),
+	else do return 100;
+
+};
+
+s(100);
+s(0);
+
+print s(100) with newline;
+
+print n with newline;

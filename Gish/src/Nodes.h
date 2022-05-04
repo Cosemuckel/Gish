@@ -559,7 +559,7 @@ public:
 			case Class::InterruptionNode: this->nodePtr = new InterruptionNode(*(InterruptionNode*)node.nodePtr); break;
 			}
 		}
-		GloabalAllocator.registerAllocation(this->nodePtr);
+		allocationTable.registerAllocation(this->nodePtr);
 	}
 
 	Node(const Node& node) {
@@ -1047,7 +1047,7 @@ void FunctionDefinitionNode::clear() {
 }
 std::string FunctionDefinitionNode::toString() {
 	std::string args = "[ ";
-	long long l = 0;
+	unsigned long long l = 0;
 	for (Argument argument : this->arguments) {
 		args += Value::Name(argument.type);
 		l++;
@@ -1085,7 +1085,7 @@ void FunctionCallNode::clear() {
 }
 std::string FunctionCallNode::toString() {
 	std::string args = "[ ";
-	long long l = 0;
+	unsigned long long l = 0;
 	for (Node* argument : this->argumentsInOrder) {
 		args += argument->toString();
 		l++;
@@ -1107,7 +1107,7 @@ ListNode::ListNode(std::vector<Node*> nodes, Allocator allocationTable, bool pas
 	this->nodes.clear();
 	for (int i = 0; i < nodes.size(); i++) {
 		this->nodes.push_back(new Node(*nodes[i], allocationTable, passOn));
-		GloabalAllocator.registerAllocation(this->nodes[i]);
+		allocationTable.registerAllocation(this->nodes[i]);
 	}
 	this->mClass = Class::ListNode;
 }
@@ -1120,7 +1120,7 @@ ListNode::ListNode(const ListNode& node, Allocator allocationTable, bool passOn)
 	this->nodes.clear();
 	for (int i = 0; i < node.nodes.size(); i++) {
 		this->nodes.push_back(new Node(*node.nodes[i], allocationTable, passOn));
-		GloabalAllocator.registerAllocation(this->nodes[i]);
+		allocationTable.registerAllocation(this->nodes[i]);
 	}
 	this->mClass = Class::ListNode;
 }

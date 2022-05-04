@@ -1,4 +1,4 @@
-#pragma once
+ #pragma once
 
 TokenType TT_PLUS	("OP", "PLUS");
 TokenType TT_MINUS	("OP", "MINUS");
@@ -107,7 +107,7 @@ TokenType TT_NEWLINE   ("CTRL", "NEWLINE");
 
 namespace LEXING {
 
-	std::string spaceCharacters = std::string(" \t");
+	std::string spaceCharacters = std::string(" \t\n");
 	std::string digits = std::string("0123456789");
 	std::string letters = std::string("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz");
 	std::string lettersDigits = std::string(letters + digits);

@@ -58,7 +58,7 @@ public:
 	void clear() {
 		this->node.clear();
 	}
-
+	
 	nullCMP;
 	ParserResult nullEQ;
 	ParserResult nullCon;
@@ -73,6 +73,7 @@ public:
 	int tokenIndex = -1;
 	Token lastToken = null;
 	Token currentToken = null;
+	static std::map<std::string, bool> functions;
 
 	Parser(std::vector<Token> tokens) {
 		this->tokens = tokens;
@@ -216,7 +217,12 @@ public:
 			REG_ADVANCE;
 			UndefineNode* node = new UndefineNode(type, varNameToken);
 			GloabalAllocator.registerAllocation(node);
-			return result.success(node);
+			if (type) {
+				if (functions.find(varNameToken.value.cString) != functions.end())
+					return result.success(node);
+				functions.erase(varNameToken.value.cString);
+				return result.success(node);
+			}
 		}
 
 		return this->functionalExpression(tok);
@@ -466,6 +472,8 @@ public:
 				GloabalAllocator.registerAllocation(body);
 				FunctionDefinitionNode* node = new FunctionDefinitionNode({}, variableName, type, body);
 				GloabalAllocator.registerAllocation(node);
+				if (functions.find(variableName.value.cString) == functions.end())
+					functions.insert({ variableName.value.cString, false });
 				return result.success(node);
 			}
 			else {
@@ -495,6 +503,8 @@ public:
 				GloabalAllocator.registerAllocation(body);
 				FunctionDefinitionNode* node = new FunctionDefinitionNode(arguments, variableName, type, body);
 				GloabalAllocator.registerAllocation(node);
+				if (functions.find(variableName.value.cString) == functions.end())
+					functions.insert({ variableName.value.cString, arguments.size()});
 				return result.success(node);
 			}
 			return result.failure(InvalidSyntaxError("Expected 'nothing'", this->currentToken.startPos, this->currentToken.endPos));
@@ -681,10 +691,30 @@ public:
 					if (looped)
 						REG_ADVANCE;
 					arguments.push_back(new Node(result.Register(this->expression(tok))));
+					GloabalAllocator.registerAllocation(arguments[arguments.size() - 1]);
 					RET_ERROR;
 					looped = true;
 				}
 				REG_ADVANCE; 
+				FunctionCallNode* node = new FunctionCallNode(arguments, token);
+				GloabalAllocator.registerAllocation(node);
+				return result.success(node);
+			}
+			if (functions.find(token.value.cString) != functions.end()) {
+				if (!functions[token.value.cString]) {
+					FunctionCallNode* node = new FunctionCallNode({}, token);
+					GloabalAllocator.registerAllocation(node);
+					return result.success(node);
+				}
+				std::vector<Node*> arguments;
+				while (true) {
+					arguments.push_back(new Node(result.Register(this->expression(tok))));
+					GloabalAllocator.registerAllocation(arguments[arguments.size() - 1]);
+					RET_ERROR;
+					if (!this->currentToken.matches(TT_COMMA))
+						break;
+					REG_ADVANCE;
+				}
 				FunctionCallNode* node = new FunctionCallNode(arguments, token);
 				GloabalAllocator.registerAllocation(node);
 				return result.success(node);
@@ -740,7 +770,7 @@ public:
 				RET_ERROR;
 				nodes.push_back(new Node(node));
 				if (!this->currentToken.matches(TT_R_SQUARE_PAREN) && !this->currentToken.matches(TT_COMMA))
-					return result.failure(InvalidSyntaxError("Expected 'comma'", this->currentToken.startPos, this->currentToken.endPos));
+					return result.failure(InvalidSyntaxError("Expected ','", this->currentToken.startPos, this->currentToken.endPos));
 				if (this->currentToken.matches(TT_COMMA)) {
 					this->advance();
 					result.regAdvance();
@@ -835,7 +865,6 @@ public:
 			GloabalAllocator.registerAllocation(left);
 			GloabalAllocator.registerAllocation(bn);
 		}
-		if (adv == 0 && required);
 		return result.success(*left);
 	}
 
@@ -848,3 +877,5 @@ public:
 		this->tokens.clear();
 	}
 };
+
+std::map<std::string, bool> Parser::functions = std::map<std::string, bool>();

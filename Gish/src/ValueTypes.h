@@ -221,7 +221,7 @@ public:
 	Number factorial() {
 		if (!this->type) {
 			int r = 1;
-			int f = (long long)this->value;
+			long long f = (long long)this->value;
 			for (int i = 1; i <= f; i++)
 				r *= i;
 			return Number(r);

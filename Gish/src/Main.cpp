@@ -8,18 +8,27 @@
 #include <map>
 #include <chrono>
 #include <thread>
+#include <conio.h>
 
 namespace windows {
 #include <Windows.h>
 }
 
+void sleep(unsigned long long int duration) {
+	std::chrono::steady_clock::time_point start = std::chrono::steady_clock::now();
+	while (true) {
+		if (std::chrono::steady_clock::now() - start > std::chrono::microseconds(duration))
+			break;
+	}
+}
+
 #include "ExitCodes.h"
+#include "Allocator.h"
 #include "Functions.h"
 
 #include "ValueTypes.h"
 #include "Global.h"
 #include "Lexer.h"
-#include "Commenter.h"
 #include "Nodes.h"
 #include "Parser.h"
 #include "Interpreter.h"
@@ -27,7 +36,7 @@ namespace windows {
 
 int main() {
 
-	GishClient::main();
+	return GishClient::main();
 
 	system("pause");
 } 
