@@ -1,11 +1,12 @@
 ###
 
 ###
-* implement break and continue (Node exists)
+* implement `break` and `continue` (Node exists)
+* fix division (and maybe others) `int` / `double` mismatch
 + 'inline' functions
 	* as sentences
 	- words (instead of 'identifier')
-		-> this->currentToken.matches("AHAH");
+		-> ```this->currentToken.matches("AHAH");```
 * save config
 ###
 * imports
