@@ -56,7 +56,7 @@ namespace GishClient {
 		execute();
 
 		stdcinAllocator.clearAllAllocations();
-		GloabalAllocator.clearAllAllocations();
+		GlobalAllocator.clearAllAllocations();
 
 	}
 
@@ -128,12 +128,13 @@ namespace GishClient {
 		run();
 		printf("\033[32mExecution finished in %fs\n\033[0m", std::chrono::duration<double>(std::chrono::steady_clock::now() - start).count());
 		printf("Press any key to continue...\n");
-		_getch();
+		waitInput();
 	}
 
 	const char* welcome = "Gish opened, choose what you want to do:\n 1: run file, return to this screen\n 2: run file, delete all data and return to this screen\n 3: run file and then continue in terminal mode\n 4: start terminal mode\n 5: reset all data\n 6: open config\nor type 'exit' to exit program\n\n";
 
 	int main() {
+		char c = 0x00;
 
 		while (true) {
 			system("cls");
@@ -217,15 +218,16 @@ namespace GishClient {
 						auto it2 = mainContext.functionTable.symbols.begin();
 						for (size_t i = 0; i < mainContext.functionTable.symbols.size(); i++) {
 							printf("   %s %s: %s", Value::Name(it2->second.returnType).c_str(), it2->first.c_str(), it2->second.argumentString().c_str());
-							std::advance(it, 1);
+							std::advance(it2, 1);
 						}
 						if (mainContext.functionTable.symbols.size() == 0)
 							printf("   NaN\n");
 						waitInput();
 					}
 
-					else if (config == "exit")
+					else if (config == "exit") {
 						break;
+					}
 				}
 				continue;
 			}

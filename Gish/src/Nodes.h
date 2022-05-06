@@ -195,7 +195,7 @@ public:
 		this->type = type;
 	}
 	std::string toString() {
-		return ( this->type == 0 ? "typeof " : "sizeof" ) + this->varNameToken.toString();
+		return (this->type == 0 ? "typeof " : "sizeof") + this->varNameToken.toString();
 	}
 
 	void clear() {
@@ -368,10 +368,10 @@ public:
 	Token varNameToken = null;
 
 	std::string toString() {
-		return ( this->type ? "Undef Func" : "Undef Var " ) + this->varNameToken.toString();
+		return (this->type ? "Undef Func" : "Undef Var ") + this->varNameToken.toString();
 	}
 	void clear() {};
-	UndefineNode(bool type, Token varNameToken) 
+	UndefineNode(bool type, Token varNameToken)
 		: type(type), varNameToken(varNameToken) {
 		this->startPos = varNameToken.startPos;
 		this->endPos = varNameToken.endPos;
@@ -399,13 +399,13 @@ public:
 	std::string toString() {
 		return "ConsoleInput";
 	}
-	void clear(){}
+	void clear() {}
 };
 
 class InterruptionNode : public BaseNode {
 public:
 
-	Token type = null; 
+	Token type = null;
 
 	InterruptionNode(Token type) {
 		this->type = type;
@@ -413,7 +413,7 @@ public:
 		this->endPos = type.endPos;
 	}
 	std::string toString() {
-		return type .matches(TT_KEYWORD_CONTINUE) ? "Continue" : "Break";
+		return type.matches(TT_KEYWORD_CONTINUE) ? "Continue" : "Break";
 	}
 	void clear() {}
 
@@ -721,7 +721,7 @@ void UnaryNode::clear() {
 }
 UnaryNode::UnaryNode(const UnaryNode& node, Allocator allocationTable, bool passOn) {
 	this->nodeOn = new Node(*node.nodeOn, allocationTable, passOn);
-	GloabalAllocator.registerAllocation(this->nodeOn);
+	allocationTable.registerAllocation(this->nodeOn);
 	this->opToken = node.opToken;
 }
 
@@ -738,8 +738,8 @@ BinaryNode::BinaryNode(Token opToken, Node* leftNode, Node* rightNode, Allocator
 	this->opToken = opToken;
 	this->leftNode = new Node(*leftNode, allocationTable, passOn);
 	this->rightNode = new Node(*rightNode, allocationTable, passOn);
-	GloabalAllocator.registerAllocation(this->leftNode);
-	GloabalAllocator.registerAllocation(this->rightNode);
+	allocationTable.registerAllocation(this->leftNode);
+	allocationTable.registerAllocation(this->rightNode);
 	this->startPos = this->leftNode->getStartPos();
 	this->endPos = this->rightNode->getEndPos();
 }
@@ -748,8 +748,8 @@ BinaryNode::BinaryNode(const BinaryNode& node, Allocator allocationTable, bool p
 	this->opToken = node.opToken;
 	this->leftNode = new Node(*node.leftNode, allocationTable, passOn);
 	this->rightNode = new Node(*node.rightNode, allocationTable, passOn);
-	GloabalAllocator.registerAllocation(this->leftNode);
-	GloabalAllocator.registerAllocation(this->rightNode);
+	allocationTable.registerAllocation(this->leftNode);
+	allocationTable.registerAllocation(this->rightNode);
 	this->startPos = this->leftNode->getStartPos();
 	this->endPos = this->rightNode->getEndPos();
 }
@@ -805,7 +805,7 @@ VarIndexAccessNode::VarIndexAccessNode(Token varNameToken, Node* index, int type
 	this->varNameToken.clear();
 	this->varNameToken = varNameToken;
 	this->index = new Node(*index, allocationTable, passOn);
-	GloabalAllocator.registerAllocation(this->index);
+	allocationTable.registerAllocation(this->index);
 	this->startPos = index->getStartPos();
 	this->endPos = varNameToken.endPos;
 	this->type = type;
@@ -814,7 +814,7 @@ VarIndexAccessNode::VarIndexAccessNode(const VarIndexAccessNode& node, Allocator
 	this->varNameToken.clear();
 	this->varNameToken = node.varNameToken;
 	this->index = new Node(*node.index, allocationTable, passOn);
-	GloabalAllocator.registerAllocation(this->index);
+	allocationTable.registerAllocation(this->index);
 	this->startPos = node.index->getStartPos();
 	this->endPos = node.varNameToken.endPos;
 	this->type = node.type;
@@ -844,8 +844,8 @@ VarIndexReAssignNode::VarIndexReAssignNode(Token varNameToken, Node* value, Node
 	this->startPos = index->getStartPos();
 	this->endPos = value->getEndPos();
 	this->index = new Node(*index, allocationTable, passOn);
-	GloabalAllocator.registerAllocation(this->index);
-	GloabalAllocator.registerAllocation(this->value);
+	allocationTable.registerAllocation(this->index);
+	allocationTable.registerAllocation(this->value);
 }
 VarIndexReAssignNode::VarIndexReAssignNode(const VarIndexReAssignNode& node, Allocator allocationTable, bool passOn) {
 	this->varNameToken.clear();
@@ -854,8 +854,8 @@ VarIndexReAssignNode::VarIndexReAssignNode(const VarIndexReAssignNode& node, All
 	this->startPos = node.index->getStartPos();
 	this->endPos = node.value->getEndPos();
 	this->index = new Node(*node.index, allocationTable, passOn);
-	GloabalAllocator.registerAllocation(this->index);
-	GloabalAllocator.registerAllocation(this->value);
+	allocationTable.registerAllocation(this->index);
+	allocationTable.registerAllocation(this->value);
 }
 std::string VarIndexReAssignNode::toString() {
 	return  std::string("index ") + index->toString() + ": (" + this->varNameToken.value.toString() + ":" + this->value->toString() + ")";
@@ -880,7 +880,7 @@ VarAssignNode::VarAssignNode(Token varNameToken, Node* value, Value::valueType t
 	this->varNameToken.clear();
 	this->varNameToken = varNameToken;
 	this->value = new Node(*value, allocationTable, passOn);
-	GloabalAllocator.registerAllocation(this->value);
+	allocationTable.registerAllocation(this->value);
 	this->startPos = value->getStartPos();
 	this->endPos = value->getEndPos();
 	this->type = type;
@@ -889,7 +889,7 @@ VarAssignNode::VarAssignNode(const VarAssignNode& node, Allocator allocationTabl
 	this->varNameToken.clear();
 	this->varNameToken = node.varNameToken;
 	this->value = new Node(*node.value, allocationTable, passOn);
-	GloabalAllocator.registerAllocation(this->value);
+	allocationTable.registerAllocation(this->value);
 	this->startPos = node.value->getStartPos();
 	this->endPos = node.value->getEndPos();
 	this->type = node.type;
@@ -913,7 +913,7 @@ VarReAssignNode::VarReAssignNode(Token varNameToken, Node* value, Allocator allo
 	this->varNameToken.clear();
 	this->varNameToken = varNameToken;
 	this->value = new Node(*value, allocationTable, passOn);
-	GloabalAllocator.registerAllocation(this->value);
+	allocationTable.registerAllocation(this->value);
 	this->startPos = value->getStartPos();
 	this->endPos = value->getEndPos();
 }
@@ -921,7 +921,7 @@ VarReAssignNode::VarReAssignNode(const VarReAssignNode& node, Allocator allocati
 	this->varNameToken.clear();
 	this->varNameToken = node.varNameToken;
 	this->value = new Node(*node.value, allocationTable, passOn);
-	GloabalAllocator.registerAllocation(this->value);
+	allocationTable.registerAllocation(this->value);
 	this->startPos = value->getStartPos();
 	this->endPos = value->getEndPos();
 }
@@ -942,21 +942,21 @@ IfNode::IfNode(Node* condition, Node* body, Node* elseStatement) {
 IfNode::IfNode(Node* condition, Node* body, Node* elseStatement, Allocator allocationTable, bool passOn) {
 	this->condition = new Node(*condition, allocationTable, passOn);
 	this->body = new Node(*body, allocationTable, passOn);
-	GloabalAllocator.registerAllocation(this->condition);
-	GloabalAllocator.registerAllocation(this->body);
+	allocationTable.registerAllocation(this->condition);
+	allocationTable.registerAllocation(this->body);
 	if (elseStatement != nullptr) {
 		this->elseStatement = new Node(*elseStatement, allocationTable, passOn);
-		GloabalAllocator.registerAllocation(this->elseStatement);
+		allocationTable.registerAllocation(this->elseStatement);
 	}
 }
 IfNode::IfNode(const IfNode& node, Allocator allocationTable, bool passOn) {
 	this->condition = new Node(*node.condition, allocationTable, passOn);
 	this->body = new Node(*node.body, allocationTable, passOn);
-	GloabalAllocator.registerAllocation(this->condition);
-	GloabalAllocator.registerAllocation(this->body);
+	allocationTable.registerAllocation(this->condition);
+	allocationTable.registerAllocation(this->body);
 	if (node.elseStatement != nullptr) {
 		this->elseStatement = new Node(*node.elseStatement, allocationTable, passOn);
-		GloabalAllocator.registerAllocation(this->elseStatement);
+		allocationTable.registerAllocation(this->elseStatement);
 	}
 }
 void IfNode::clear() {
@@ -979,14 +979,14 @@ IterationNode::IterationNode(Node* iterations, Node* body) {
 IterationNode::IterationNode(Node* iterations, Node* body, Allocator allocationTable, bool passOn) {
 	this->iterations = new Node(*iterations, allocationTable, passOn);
 	this->body = new Node(*body, allocationTable, passOn);
-	GloabalAllocator.registerAllocation(this->iterations);
-	GloabalAllocator.registerAllocation(this->body);
+	allocationTable.registerAllocation(this->iterations);
+	allocationTable.registerAllocation(this->body);
 }
 IterationNode::IterationNode(const IterationNode& node, Allocator allocationTable, bool passOn) {
 	this->iterations = new Node(*node.iterations, allocationTable, passOn);
 	this->body = new Node(*node.body, allocationTable, passOn);
-	GloabalAllocator.registerAllocation(this->iterations);
-	GloabalAllocator.registerAllocation(this->body);
+	allocationTable.registerAllocation(this->iterations);
+	allocationTable.registerAllocation(this->body);
 }
 void IterationNode::clear() {
 	this->iterations->clear();
@@ -1002,14 +1002,14 @@ TimedIterationNode::TimedIterationNode(Node* seconds, Node* body) {
 TimedIterationNode::TimedIterationNode(Node* seconds, Node* body, Allocator allocationTable, bool passOn) {
 	this->seconds = new Node(*seconds, allocationTable, passOn);
 	this->body = new Node(*body, allocationTable, passOn);
-	GloabalAllocator.registerAllocation(this->seconds);
-	GloabalAllocator.registerAllocation(this->body);
+	allocationTable.registerAllocation(this->seconds);
+	allocationTable.registerAllocation(this->body);
 }
 TimedIterationNode::TimedIterationNode(const TimedIterationNode& node, Allocator allocationTable, bool passOn) {
 	this->seconds = new Node(*node.seconds, allocationTable, passOn);
 	this->body = new Node(*node.body, allocationTable, passOn);
-	GloabalAllocator.registerAllocation(this->seconds);
-	GloabalAllocator.registerAllocation(this->body);
+	allocationTable.registerAllocation(this->seconds);
+	allocationTable.registerAllocation(this->body);
 }
 void TimedIterationNode::clear() {
 	this->seconds->clear();
@@ -1030,14 +1030,14 @@ FunctionDefinitionNode::FunctionDefinitionNode(std::vector<Argument> arguments, 
 	this->varNameToken = varNameToken;
 	this->returnType = returnType;
 	this->body = new Node(*body, allocationTable, passOn);
-	GloabalAllocator.registerAllocation(this->body);
+	allocationTable.registerAllocation(this->body);
 }
 FunctionDefinitionNode::FunctionDefinitionNode(const FunctionDefinitionNode& node, Allocator allocationTable, bool passOn) {
 	this->arguments = node.arguments;
 	this->varNameToken = node.varNameToken;
 	this->returnType = node.returnType;
 	this->body = new Node(*node.body, allocationTable, passOn);
-	GloabalAllocator.registerAllocation(this->body);
+	allocationTable.registerAllocation(this->body);
 }
 
 void FunctionDefinitionNode::clear() {
@@ -1065,14 +1065,14 @@ FunctionCallNode::FunctionCallNode(std::vector<Node*> argumentsInOrder, Token va
 FunctionCallNode::FunctionCallNode(const FunctionCallNode& node, Allocator allocationTable, bool passOn) {
 	for (int i = 0; i < node.argumentsInOrder.size(); i++) {
 		this->argumentsInOrder.push_back(new Node(*node.argumentsInOrder[i], allocationTable, passOn));
-		GloabalAllocator.registerAllocation(this->argumentsInOrder[i]);
+		allocationTable.registerAllocation(this->argumentsInOrder[i]);
 	}
 	this->varNameToken = node.varNameToken;
 }
 FunctionCallNode::FunctionCallNode(std::vector<Node*> argumentsInOrder, Token varNameToken, Allocator allocationTable, bool passOn) {
 	for (int i = 0; i < argumentsInOrder.size(); i++) {
 		this->argumentsInOrder.push_back(new Node(*argumentsInOrder[i], allocationTable, passOn));
-		GloabalAllocator.registerAllocation(this->argumentsInOrder[i]);
+		allocationTable.registerAllocation(this->argumentsInOrder[i]);
 	}
 	this->varNameToken = varNameToken;
 }
@@ -1136,11 +1136,11 @@ ArrayNode::ArrayNode(std::vector<Node*> nodes, Token type) {
 ArrayNode::ArrayNode(std::vector<Node*> nodes, Token type, Allocator allocationTable, bool passOn) {
 	this->type.clear();
 	for (int i = 0; i < nodes.size(); i++) {
-		if (!passOn) 
+		if (!passOn)
 			this->nodes.push_back(new Node(*nodes[i]));
 		else
 			this->nodes.push_back(new Node(*nodes[i], allocationTable, passOn));
-		GloabalAllocator.registerAllocation(this->nodes[i]);
+		allocationTable.registerAllocation(this->nodes[i]);
 	}
 	this->type = type;
 	this->mClass = Class::ArrayNode;
@@ -1156,7 +1156,7 @@ ArrayNode::ArrayNode(const ArrayNode& node, Allocator allocationTable, bool pass
 	this->nodes.clear();
 	for (int i = 0; i < node.nodes.size(); i++) {
 		this->nodes.push_back(new Node(*node.nodes[i], allocationTable, passOn));
-		GloabalAllocator.registerAllocation(this->nodes[i]);
+		allocationTable.registerAllocation(this->nodes[i]);
 	}
 	this->mClass = Class::ArrayNode;
 }
@@ -1169,14 +1169,14 @@ ReturnNode::ReturnNode(Node* value) {
 }
 ReturnNode::ReturnNode(Node* value, Allocator allocationTable, bool passOn) {
 	this->value = new Node(*value, allocationTable, passOn);
-	GloabalAllocator.registerAllocation(this->value);
+	allocationTable.registerAllocation(this->value);
 	this->mClass = Class::ReturnNode;
 	this->startPos = value->getStartPos();
 	this->endPos = value->getEndPos();
 }
 ReturnNode::ReturnNode(const ReturnNode& node, Allocator allocationTable, bool passOn) {
 	this->value = new Node(*node.value, allocationTable, passOn);
-	GloabalAllocator.registerAllocation(this->value);
+	allocationTable.registerAllocation(this->value);
 	this->mClass = Class::ReturnNode;
 	this->startPos = node.startPos;
 	this->endPos = node.endPos;
@@ -1199,12 +1199,12 @@ OutputNode::OutputNode(Node* value, bool printLine, short type, Allocator alloca
 	this->object = new Node(*value, allocationTable, passOn);
 	this->printLine = printLine;
 	this->type = type;
-	GloabalAllocator.registerAllocation(this->object);
+	allocationTable.registerAllocation(this->object);
 	this->mClass = Class::ReturnNode;
 }
 OutputNode::OutputNode(const OutputNode& node, Allocator allocationTable, bool passOn) {
 	this->object = new Node(*node.object, allocationTable, passOn);
-	GloabalAllocator.registerAllocation(this->object);
+	allocationTable.registerAllocation(this->object);
 	this->mClass = Class::ReturnNode;
 	this->printLine = node.printLine;
 	this->type = node.type;
@@ -1212,10 +1212,10 @@ OutputNode::OutputNode(const OutputNode& node, Allocator allocationTable, bool p
 }
 void OutputNode::clear() {
 	if (this->object != nullptr)
-	this->object->clear();
+		this->object->clear();
 }
 std::string OutputNode::toString() {
 	if (this->object == nullptr)
 		return "print a newline";
-	return ( this->type == 0 ? "print " : "consoleCMD " ) + this->object->toString();
+	return (this->type == 0 ? "print " : "consoleCMD ") + this->object->toString();
 }

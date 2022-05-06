@@ -37,4 +37,4 @@ public:
 		this->nAllocations = 0;
 	}
 
-}GloabalAllocator;
+}GlobalAllocator;

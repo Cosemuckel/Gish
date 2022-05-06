@@ -38,5 +38,4 @@ int main() {
 
 	return GishClient::main();
 
-	system("pause");
 } 

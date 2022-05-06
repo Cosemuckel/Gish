@@ -39,6 +39,15 @@ const char* stdfin(const char* fileName) {
 	return result;
 }
 
+void stdfout(const char* fileName, const char* data) {
+	std::ofstream ofs(fileName, std::ios::binary);
+	int s = 0;
+	while (data[s] != '\0')
+		s++;
+	ofs << data;
+	ofs.close();
+}
+
 void waitInput() {
 	char Character = EOF;
 	while ((Character = getchar()) != '\n' && Character != EOF);

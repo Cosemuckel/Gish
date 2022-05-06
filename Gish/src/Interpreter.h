@@ -712,11 +712,21 @@ public:
 	}
 
 	RuntimeResult visitFunctionCallNode(FunctionCallNode node, Context& context, bool inFunction) {
-		RuntimeResult result = RuntimeResult();		
+		RuntimeResult result = RuntimeResult();
 		std::vector<InterpretedValue> arguments;
 
+		/*printf("  -Functions:\n");
+		auto it2 = context.functionTable.symbols.begin();
+		for (size_t i = 0; i < context.functionTable.symbols.size(); i++) {
+			printf("   %s %s: %s", Value::Name(it2->second.returnType).c_str(), it2->first.c_str(), it2->second.argumentString().c_str());
+			std::advance(it2, 1);
+		}
+		printf("\n");
+
+		std::cout <<( context.functionTable.get(node.varNameToken.value.cString) == nullptr )<< "???\n";*/
+
 		if (context.functionTable.get(node.varNameToken.value.cString) == nullptr)
-			return result.failure(RuntimeError(std::string("Function '") + node.varNameToken.value.cString + "' is not defined", node.startPos, node.endPos));
+			return result.failure(RuntimeError(std::string("Function '") + node.varNameToken.value.cString + "' is not defined!", node.startPos, node.endPos));
 
 		for (int i = 0; i < node.argumentsInOrder.size(); i++) {
 			arguments.push_back(result.Register(this->visit(*node.argumentsInOrder[i], context, inFunction)));
@@ -724,10 +734,12 @@ public:
 			RET_RET;
 		}
 
-		InterpretedValue returnedValue = result.Register(context.functionTable.get(node.varNameToken.value.cString)->execute(arguments, context));
+		RuntimeResult execution = context.functionTable.get(node.varNameToken.value.cString)->execute(arguments, context);
+		InterpretedValue returnedValue = result.Register(execution);
 		RET_ERROR;
 		RET_RETA(returnedValue);
 		return result.success(returnedValue);
+		//return result.success(InterpretedValue(Number(0), null, null));
 	}
 
 	RuntimeResult visitReturnNode(ReturnNode node, Context& context, bool inFunction) {

@@ -58,7 +58,7 @@ public:
 	void clear() {
 		this->node.clear();
 	}
-	
+
 	nullCMP;
 	ParserResult nullEQ;
 	ParserResult nullCon;
@@ -118,12 +118,12 @@ public:
 			if (!s)
 				return result.failure(InvalidSyntaxError("Missing a semicolon ';'" + this->lastToken.toString(), this->lastToken.startPos, this->lastToken.endPos));
 			Node* rNode = new Node(node);
-			GloabalAllocator.registerAllocation(rNode);
+			GlobalAllocator.registerAllocation(rNode);
 			statements.push_back(rNode);
 		}
 		REG_ADVANCE;
 		ListNode* l = new ListNode(statements);
-		GloabalAllocator.registerAllocation(l);
+		GlobalAllocator.registerAllocation(l);
 		return result.success(l);
 	}
 
@@ -134,9 +134,9 @@ public:
 			Node* value = new Node(result.Register(this->expression(tok)));
 			RET_ERROR;
 			ReturnNode* node = new ReturnNode(value);
-			GloabalAllocator.registerAllocation(value);
-			GloabalAllocator.registerAllocation(node);
-			return result.success(node);			
+			GlobalAllocator.registerAllocation(value);
+			GlobalAllocator.registerAllocation(node);
+			return result.success(node);
 		}
 		if (this->currentToken.matches(TT_PRINT)) {
 			ParserResult result = ParserResult();
@@ -148,14 +148,14 @@ public:
 					return result.failure(InvalidSyntaxError("Expexted 'newline'" + this->currentToken.toString(), this->currentToken.startPos, this->currentToken.endPos));
 				REG_ADVANCE;
 				OutputNode* node = new OutputNode(nullptr, true, 0);
-				GloabalAllocator.registerAllocation(node);
+				GlobalAllocator.registerAllocation(node);
 				return result.success(node);
 			}
 			Node* value;
 			if (this->currentToken.matches(TT_NOTHING)) {
 				REG_ADVANCE;
 				StringNode* node = new StringNode(Token(TT_STRING, Value(std::string(""))));
-				GloabalAllocator.registerAllocation(node);
+				GlobalAllocator.registerAllocation(node);
 				value = new Node(node);
 			}
 			else value = new Node(result.Register(this->expression(tok)));
@@ -168,9 +168,9 @@ public:
 			}
 			RET_ERROR;
 			OutputNode* node = new OutputNode(value, nl, 0);
-			GloabalAllocator.registerAllocation(value);
-			GloabalAllocator.registerAllocation(node);
-			return result.success(node);			
+			GlobalAllocator.registerAllocation(value);
+			GlobalAllocator.registerAllocation(node);
+			return result.success(node);
 		}
 		if (this->currentToken.matches(TT_EXECUTE)) {
 			ParserResult result = ParserResult();
@@ -180,7 +180,7 @@ public:
 			if (this->currentToken.matches(TT_NOTHING)) {
 				REG_ADVANCE;
 				StringNode* node = new StringNode(Token(TT_STRING, Value(std::string(""))));
-				GloabalAllocator.registerAllocation(node);
+				GlobalAllocator.registerAllocation(node);
 				value = new Node(node);
 			}
 			else {
@@ -194,8 +194,8 @@ public:
 			}
 			RET_ERROR;
 			OutputNode* node = new OutputNode(value, nl, 1);
-			GloabalAllocator.registerAllocation(value);
-			GloabalAllocator.registerAllocation(node);
+			GlobalAllocator.registerAllocation(value);
+			GlobalAllocator.registerAllocation(node);
 			return result.success(node);
 		}
 		if (this->currentToken.matches(TT_KEYWORD_UNDEFINE)) {
@@ -216,7 +216,7 @@ public:
 			Token varNameToken = this->currentToken;
 			REG_ADVANCE;
 			UndefineNode* node = new UndefineNode(type, varNameToken);
-			GloabalAllocator.registerAllocation(node);
+			GlobalAllocator.registerAllocation(node);
 			if (type) {
 				if (functions.find(varNameToken.value.cString) != functions.end())
 					return result.success(node);
@@ -236,7 +236,7 @@ public:
 			if (this->currentToken.matches(TT_NOTHING)) {
 				REG_ADVANCE;
 				ListNode* node = new ListNode({});
-				GloabalAllocator.registerAllocation(node);
+				GlobalAllocator.registerAllocation(node);
 				body = new Node(node);
 			}
 			else if (!this->currentToken.matches(TT_L_CURLY_PAREN)) {
@@ -246,16 +246,16 @@ public:
 				REG_ADVANCE;
 				body = new Node(result.Register(this->multiStatementExpression(tok, TT_R_CURLY_PAREN)));
 			}
-			GloabalAllocator.registerAllocation(body);
+			GlobalAllocator.registerAllocation(body);
 			RET_ERROR;
 			if (this->currentToken.matches(TT_KEYWORD_IF)) {
 				REG_ADVANCE;
 				Node* condition = new Node(result.Register(this->expression(tok)));
-				GloabalAllocator.registerAllocation(condition);
+				GlobalAllocator.registerAllocation(condition);
 				RET_ERROR;
 				if (!this->currentToken.matches(TT_COMMA)) {
 					IfNode* node = new IfNode(condition, body, nullptr);
-					GloabalAllocator.registerAllocation(node);
+					GlobalAllocator.registerAllocation(node);
 					return result.success(node);
 				}
 				REG_ADVANCE;
@@ -267,38 +267,38 @@ public:
 						if (!this->currentToken.matches(TT_KEYWORD_DO))
 							return result.failure(InvalidSyntaxError("Expected 'do'", this->currentToken.startPos, this->currentToken.endPos));
 						elseStatement = new Node(result.Register(this->unusableExpression(tok)));
-						GloabalAllocator.registerAllocation(elseStatement);
+						GlobalAllocator.registerAllocation(elseStatement);
 					}
 					else {
-						REG_ADVANCE; 
+						REG_ADVANCE;
 						if (!this->currentToken.matches(TT_KEYWORD_DO))
 							return result.failure(InvalidSyntaxError("Expected 'do'", this->currentToken.startPos, this->currentToken.endPos));
 						elseStatement = new Node(result.Register(this->multiStatementExpression(tok, TT_R_CURLY_PAREN)));
-						GloabalAllocator.registerAllocation(elseStatement);
+						GlobalAllocator.registerAllocation(elseStatement);
 					}
 					IfNode* node = new IfNode(condition, body, elseStatement);
-					GloabalAllocator.registerAllocation(node);
+					GlobalAllocator.registerAllocation(node);
 					return result.success(node);
 				}
 				IfNode* node = new IfNode(condition, body, nullptr);
-				GloabalAllocator.registerAllocation(node);
+				GlobalAllocator.registerAllocation(node);
 				return result.success(node);
-			}			
+			}
 			if (this->currentToken.matches(TT_KEYWORD_FOR)) {
 				REG_ADVANCE;
 				Node* amount = new Node(result.Register(this->expression(tok)));
-				GloabalAllocator.registerAllocation(amount);
+				GlobalAllocator.registerAllocation(amount);
 				RET_ERROR;
 				if (this->currentToken.matches(TT_KEYWORD_ITERATIONS)) {
 					REG_ADVANCE;
 					IterationNode* node = new IterationNode(amount, body);
-					GloabalAllocator.registerAllocation(node);
+					GlobalAllocator.registerAllocation(node);
 					return result.success(node);
 				}
 				if (this->currentToken.matches(TT_KEYWORD_SECONDS)) {
 					REG_ADVANCE;
 					TimedIterationNode* node = new TimedIterationNode(amount, body);
-					GloabalAllocator.registerAllocation(node);
+					GlobalAllocator.registerAllocation(node);
 					return result.success(node);
 				}
 				return result.failure(InvalidSyntaxError("Expected 'iterations' or 'seconds'", this->currentToken.startPos, this->currentToken.endPos));
@@ -318,7 +318,7 @@ public:
 			if (this->currentToken.matches(TT_KEYWORD_INDEX)) {
 				REG_ADVANCE;
 				Node* index = new Node(result.Register(this->expression(tok)));
-				GloabalAllocator.registerAllocation(index);
+				GlobalAllocator.registerAllocation(index);
 				RET_ERROR;
 				if (!this->currentToken.matches(TT_OF))
 					return result.failure(InvalidSyntaxError("Expected 'of'", this->currentToken.startPos, this->currentToken.endPos));
@@ -334,10 +334,10 @@ public:
 					return result.failure(InvalidSyntaxError("Expected 'to'", this->currentToken.startPos, this->currentToken.endPos));
 				REG_ADVANCE;
 				Node* expression = new Node(result.Register(this->expression(tok)));
-				GloabalAllocator.registerAllocation(expression);
+				GlobalAllocator.registerAllocation(expression);
 				RET_ERROR;
 				VarIndexReAssignNode* node = new VarIndexReAssignNode(variableName, expression, index);
-				GloabalAllocator.registerAllocation(node);
+				GlobalAllocator.registerAllocation(node);
 				return result.success(node);
 			}
 
@@ -352,10 +352,10 @@ public:
 				return result.failure(InvalidSyntaxError("Expected 'to'", this->currentToken.startPos, this->currentToken.endPos));
 			REG_ADVANCE;
 			Node* expression = new Node(result.Register(this->expression(tok)));
-			GloabalAllocator.registerAllocation(expression);
+			GlobalAllocator.registerAllocation(expression);
 			RET_ERROR;
 			VarReAssignNode* node = new VarReAssignNode(variableName, expression);
-			GloabalAllocator.registerAllocation(node);
+			GlobalAllocator.registerAllocation(node);
 			return result.success(node);
 		}
 		if (contains({ TT_SQUARE, TT_CUBE }, this->currentToken.type)) {
@@ -370,11 +370,11 @@ public:
 			Node* n = new Node(_n);
 			Node* nm = new Node(_nm);
 			BinaryNode* b = new BinaryNode(Token(TT_POW), n, nm);
-			GloabalAllocator.registerAllocation(_n);
-			GloabalAllocator.registerAllocation(_nm);
-			GloabalAllocator.registerAllocation(n);
-			GloabalAllocator.registerAllocation(nm);
-			GloabalAllocator.registerAllocation(b);
+			GlobalAllocator.registerAllocation(_n);
+			GlobalAllocator.registerAllocation(_nm);
+			GlobalAllocator.registerAllocation(n);
+			GlobalAllocator.registerAllocation(nm);
+			GlobalAllocator.registerAllocation(b);
 			return result.success(b);
 		}
 		if (contains({ TT_ADD, TT_SUB, TT_MULTIPLY, TT_DIVIDE }, this->currentToken.type)) {
@@ -384,7 +384,7 @@ public:
 			Node* node = nullptr;
 			if (token.matches(TT_ADD) || token.matches(TT_SUB)) {
 				node = new Node(result.Register(this->expression(tok)));
-				GloabalAllocator.registerAllocation(node);
+				GlobalAllocator.registerAllocation(node);
 				RET_ERROR;
 			}
 			else if (!this->currentToken.matches(TT_IDENTIFIER))
@@ -412,7 +412,7 @@ public:
 			REG_ADVANCE;
 			if (token.matches(TT_MULTIPLY) || token.matches(TT_DIVIDE)) {
 				node = new Node(result.Register(this->expression(tok)));
-				GloabalAllocator.registerAllocation(node);
+				GlobalAllocator.registerAllocation(node);
 				RET_ERROR;
 			}
 			else if (!this->currentToken.matches(TT_IDENTIFIER))
@@ -426,12 +426,12 @@ public:
 			Node* n = new Node(_n);
 			BinaryNode* b = new BinaryNode(Token(opToken), n, node);
 			Node* bn = new Node(b);
-			GloabalAllocator.registerAllocation(_n);
-			GloabalAllocator.registerAllocation(n);
-			GloabalAllocator.registerAllocation(b);
-			GloabalAllocator.registerAllocation(bn);
+			GlobalAllocator.registerAllocation(_n);
+			GlobalAllocator.registerAllocation(n);
+			GlobalAllocator.registerAllocation(b);
+			GlobalAllocator.registerAllocation(bn);
 			VarReAssignNode* node2 = new VarReAssignNode(variableName, bn);
-			GloabalAllocator.registerAllocation(node2);
+			GlobalAllocator.registerAllocation(node2);
 			return result.success(node2);
 		}
 		return this->varIntroducingExpression(tok);
@@ -453,10 +453,10 @@ public:
 					return result.failure(InvalidSyntaxError("Can't create Void-variable", this->currentToken.startPos, this->currentToken.endPos));
 				REG_ADVANCE;
 				Node* expression = new Node(result.Register(this->varIntroducingExpression(tok)));
-				GloabalAllocator.registerAllocation(expression);
+				GlobalAllocator.registerAllocation(expression);
 				RET_ERROR;
 				VarAssignNode* n = new VarAssignNode(variableName, expression, type);
-				GloabalAllocator.registerAllocation(n);
+				GlobalAllocator.registerAllocation(n);
 				return result.success(n);
 			}
 			REG_ADVANCE;
@@ -469,9 +469,9 @@ public:
 					return result.failure(InvalidSyntaxError("Expected '{'", this->currentToken.startPos, this->currentToken.endPos));
 				REG_ADVANCE;
 				Node* body = new Node(result.Register(this->multiStatementExpression(tok, TT_R_CURLY_PAREN)));
-				GloabalAllocator.registerAllocation(body);
+				GlobalAllocator.registerAllocation(body);
 				FunctionDefinitionNode* node = new FunctionDefinitionNode({}, variableName, type, body);
-				GloabalAllocator.registerAllocation(node);
+				GlobalAllocator.registerAllocation(node);
 				if (functions.find(variableName.value.cString) == functions.end())
 					functions.insert({ variableName.value.cString, false });
 				return result.success(node);
@@ -500,11 +500,11 @@ public:
 					return result.failure(InvalidSyntaxError("Expected '{'", this->currentToken.startPos, this->currentToken.endPos));
 				REG_ADVANCE;
 				Node* body = new Node(result.Register(this->multiStatementExpression(tok, TT_R_CURLY_PAREN)));
-				GloabalAllocator.registerAllocation(body);
+				GlobalAllocator.registerAllocation(body);
 				FunctionDefinitionNode* node = new FunctionDefinitionNode(arguments, variableName, type, body);
-				GloabalAllocator.registerAllocation(node);
+				GlobalAllocator.registerAllocation(node);
 				if (functions.find(variableName.value.cString) == functions.end())
-					functions.insert({ variableName.value.cString, arguments.size()});
+					functions.insert({ variableName.value.cString, arguments.size() });
 				return result.success(node);
 			}
 			return result.failure(InvalidSyntaxError("Expected 'nothing'", this->currentToken.startPos, this->currentToken.endPos));
@@ -517,9 +517,9 @@ public:
 			if (!this->currentToken.matches(TT_TYPE))
 				return result.failure(InvalidSyntaxError("Expected 'type'", this->currentToken.startPos, this->currentToken.endPos));
 			REG_ADVANCE;
-			if (! contains({ TT_KEYWORD_STRING, TT_KEYWORD_BOOLEAN, TT_KEYWORD_NUMBER, TT_KEYWORD_ARRAY }, this->currentToken.type))
+			if (!contains({ TT_KEYWORD_STRING, TT_KEYWORD_BOOLEAN, TT_KEYWORD_NUMBER, TT_KEYWORD_ARRAY }, this->currentToken.type))
 				return result.failure(InvalidSyntaxError("Expected typename", this->currentToken.startPos, this->currentToken.endPos));
-			if (this->currentToken.matches(TT_KEYWORD_ARRAY))			
+			if (this->currentToken.matches(TT_KEYWORD_ARRAY))
 				return result.failure(InvalidSyntaxError("Arrays of Arrays are not yet supported!", this->currentToken.startPos, this->currentToken.endPos));
 			REG_ADVANCE;
 			Token variableName = this->currentToken;
@@ -528,10 +528,10 @@ public:
 				return result.failure(InvalidSyntaxError("Expected 'equals'", this->currentToken.startPos, this->currentToken.endPos));
 			REG_ADVANCE;
 			Node* expression = new Node(result.Register(this->varIntroducingExpression(tok)));
-			GloabalAllocator.registerAllocation(expression);
+			GlobalAllocator.registerAllocation(expression);
 			RET_ERROR;
 			VarAssignNode* node = new VarAssignNode(variableName, expression, Value::valueType::Array);
-			GloabalAllocator.registerAllocation(node);
+			GlobalAllocator.registerAllocation(node);
 			return result.success(node);
 		}
 		return this->expression(tok);
@@ -541,7 +541,7 @@ public:
 		ParserResult result = ParserResult();
 		Token opToken = null;
 		Node* left = new Node(result.Register(this->normalExpression(tok)));
-		GloabalAllocator.registerAllocation(left);
+		GlobalAllocator.registerAllocation(left);
 		RET_ERROR;
 		bool NOT = false;
 		if (this->currentToken.matches(TT_IS)) {
@@ -561,10 +561,10 @@ public:
 				this->advance();
 				result.regAdvance();
 				Node* right = new Node(result.Register(this->normalExpression(tok)));
-				GloabalAllocator.registerAllocation(right);
+				GlobalAllocator.registerAllocation(right);
 				RET_ERROR;
 				BinaryNode* node = new BinaryNode(opToken, left, right);
-				GloabalAllocator.registerAllocation(node);
+				GlobalAllocator.registerAllocation(node);
 				return result.success(node);
 			}
 			if (this->currentToken.matches(TT_GREAT) || this->currentToken.matches(TT_SMALL)) {
@@ -584,11 +584,11 @@ public:
 					return result.failure(InvalidSyntaxError("Expexted 'to'", this->currentToken.startPos, this->currentToken.endPos));
 				REG_ADVANCE;
 				Node* right = new Node(result.Register(this->normalExpression(tok)));
-				GloabalAllocator.registerAllocation(right);
+				GlobalAllocator.registerAllocation(right);
 				RET_ERROR;
 				opToken = orEqual ? token.matches(TT_GREAT) ? Token(TT_GREAT_EQ, Value(Bool(NOT))) : Token(TT_SMALL_EQ, Value(Bool(NOT))) : token.matches(TT_GREAT) ? Token(TT_GREAT, Value(Bool(NOT))) : Token(TT_SMALL, Value(Bool(NOT)));
 				BinaryNode* node = new BinaryNode(opToken, left, right);
-				GloabalAllocator.registerAllocation(node);
+				GlobalAllocator.registerAllocation(node);
 				return result.success(node);
 			}
 			return result.failure(InvalidSyntaxError("Expected ('not' followed by) 'equal to' or 'greater', 'smaller', 'greaterEqual' or 'smallerEqual' followed by 'than'", this->currentToken.startPos, this->currentToken.endPos));
@@ -610,7 +610,7 @@ public:
 			Token token = this->currentToken;
 			REG_ADVANCE;
 			Node node = Node(new InterruptionNode(token));
-			GloabalAllocator.registerAllocation(node.nodePtr);
+			GlobalAllocator.registerAllocation(node.nodePtr);
 			return result.success(node);
 		}
 
@@ -626,12 +626,12 @@ public:
 			this->advance();
 			result.regAdvance();
 			Node* binOp = new Node(result.Register(this->term(tok)));
-			GloabalAllocator.registerAllocation(binOp);
+			GlobalAllocator.registerAllocation(binOp);
 			RET_ERROR;
 			if (token.matches(TT_PLUS))
 				return result.success(*binOp);
 			UnaryNode* node = new UnaryNode(token, binOp);
-			GloabalAllocator.registerAllocation(node);
+			GlobalAllocator.registerAllocation(node);
 			return result.success(node);
 		}
 		return this->binaryOperation("factor", { TT_MULT, TT_DIV }, false, tok);
@@ -644,7 +644,7 @@ public:
 	ParserResult atom(Token tok) {
 		ParserResult result = ParserResult();
 		Node* left = new Node(result.Register(this->nucleus(tok)));
-		GloabalAllocator.registerAllocation(left);
+		GlobalAllocator.registerAllocation(left);
 		RET_ERROR;
 		while (this->currentToken.matches(TT_SQUARED) || this->currentToken.matches(TT_CUBED)) {
 			this->advance();
@@ -652,11 +652,11 @@ public:
 			NumberNode* nn = new NumberNode(Token(TT_INT, Value(Number(this->currentToken.matches(TT_SQUARED) ? 2 : 3)), this->lastToken.startPos, this->currentToken.endPos));
 			Node* n = new Node(nn);
 			BinaryNode* bn = new BinaryNode(Token(TT_POW), left, n);
-			GloabalAllocator.registerAllocation(nn);
-			GloabalAllocator.registerAllocation(n);
-			GloabalAllocator.registerAllocation(nn);
+			GlobalAllocator.registerAllocation(nn);
+			GlobalAllocator.registerAllocation(n);
+			GlobalAllocator.registerAllocation(nn);
 			left = new Node(bn);
-			GloabalAllocator.registerAllocation(left);
+			GlobalAllocator.registerAllocation(left);
 		}
 		return result.success(*left);
 	}
@@ -664,14 +664,14 @@ public:
 	ParserResult nucleus(Token tok) {
 		ParserResult result = ParserResult();
 		Node* node = new Node(result.Register(this->nucleon(tok)));
-		GloabalAllocator.registerAllocation(node);
+		GlobalAllocator.registerAllocation(node);
 		RET_ERROR;
 		while (this->currentToken.matches(TT_FAC)) {
-			REG_ADVANCE; 
+			REG_ADVANCE;
 			UnaryNode* bn = new UnaryNode(Token(TT_FAC), node);
 			node = new Node(bn);
-			GloabalAllocator.registerAllocation(bn);
-			GloabalAllocator.registerAllocation(node);
+			GlobalAllocator.registerAllocation(bn);
+			GlobalAllocator.registerAllocation(node);
 		}
 		return result.success(*node);
 	}
@@ -691,36 +691,36 @@ public:
 					if (looped)
 						REG_ADVANCE;
 					arguments.push_back(new Node(result.Register(this->expression(tok))));
-					GloabalAllocator.registerAllocation(arguments[arguments.size() - 1]);
+					GlobalAllocator.registerAllocation(arguments[arguments.size() - 1]);
 					RET_ERROR;
 					looped = true;
 				}
-				REG_ADVANCE; 
+				REG_ADVANCE;
 				FunctionCallNode* node = new FunctionCallNode(arguments, token);
-				GloabalAllocator.registerAllocation(node);
+				GlobalAllocator.registerAllocation(node);
 				return result.success(node);
 			}
 			if (functions.find(token.value.cString) != functions.end()) {
 				if (!functions[token.value.cString]) {
 					FunctionCallNode* node = new FunctionCallNode({}, token);
-					GloabalAllocator.registerAllocation(node);
+					GlobalAllocator.registerAllocation(node);
 					return result.success(node);
 				}
 				std::vector<Node*> arguments;
 				while (true) {
 					arguments.push_back(new Node(result.Register(this->expression(tok))));
-					GloabalAllocator.registerAllocation(arguments[arguments.size() - 1]);
+					GlobalAllocator.registerAllocation(arguments[arguments.size() - 1]);
 					RET_ERROR;
 					if (!this->currentToken.matches(TT_COMMA))
 						break;
 					REG_ADVANCE;
 				}
 				FunctionCallNode* node = new FunctionCallNode(arguments, token);
-				GloabalAllocator.registerAllocation(node);
+				GlobalAllocator.registerAllocation(node);
 				return result.success(node);
 			}
 			VarAccessNode* node = new VarAccessNode(token);
-			GloabalAllocator.registerAllocation(node);
+			GlobalAllocator.registerAllocation(node);
 			return result.success(node);
 		}
 		if (token.matches(TT_KEYWORD_TYPEOF) || token.matches(TT_KEYWORD_SIZEOF)) {
@@ -732,7 +732,7 @@ public:
 			this->advance();
 			result.regAdvance();
 			PropertyNode* node = new PropertyNode(token, !token.matches(TT_KEYWORD_TYPEOF));
-			GloabalAllocator.registerAllocation(node);
+			GlobalAllocator.registerAllocation(node);
 			return result.success(node);
 		}
 		if (token.matches(TT_INT) || token.matches(TT_DOUBLE)) {
@@ -740,8 +740,8 @@ public:
 			result.regAdvance();
 			NumberNode* nn = new NumberNode(token);
 			Node* node = new Node(nn);
-			GloabalAllocator.registerAllocation(node);
-			GloabalAllocator.registerAllocation(nn);
+			GlobalAllocator.registerAllocation(node);
+			GlobalAllocator.registerAllocation(nn);
 			return result.success(*node);
 		}
 		if (token.matches(TT_STRING)) {
@@ -749,8 +749,8 @@ public:
 			result.regAdvance();
 			StringNode* sn = new StringNode(token);
 			Node* node = new Node(sn);
-			GloabalAllocator.registerAllocation(node);
-			GloabalAllocator.registerAllocation(sn);
+			GlobalAllocator.registerAllocation(node);
+			GlobalAllocator.registerAllocation(sn);
 			return result.success(*node);
 		}
 		if (token.matches(TT_BOOLEAN)) {
@@ -758,8 +758,8 @@ public:
 			result.regAdvance();
 			BooleanNode* bn = new BooleanNode(token);
 			Node* node = new Node(bn);
-			GloabalAllocator.registerAllocation(node);
-			GloabalAllocator.registerAllocation(bn);
+			GlobalAllocator.registerAllocation(node);
+			GlobalAllocator.registerAllocation(bn);
 			return result.success(*node);
 		}
 		if (token.matches(TT_L_SQUARE_PAREN)) {
@@ -779,7 +779,7 @@ public:
 			this->advance();
 			result.regAdvance();
 			ArrayNode* an = new ArrayNode(nodes, token);
-			GloabalAllocator.registerAllocation(an);
+			GlobalAllocator.registerAllocation(an);
 			return result.success(an);
 		}
 		if (token.matches(TT_L_PAREN)) {
@@ -807,7 +807,7 @@ public:
 			Token variableName = this->currentToken;
 			REG_ADVANCE;
 			VarIndexAccessNode* node = new VarIndexAccessNode(variableName, index, !token.matches(TT_KEYWORD_INDEX));
-			GloabalAllocator.registerAllocation(node);
+			GlobalAllocator.registerAllocation(node);
 			return result.success(node);
 
 		}
@@ -823,7 +823,7 @@ public:
 				return result.failure(InvalidSyntaxError("Expected 'console'", this->currentToken.startPos, this->currentToken.endPos));
 			REG_ADVANCE;
 			InputNode* node = new InputNode();
-			GloabalAllocator.registerAllocation(node);
+			GlobalAllocator.registerAllocation(node);
 			return result.success(node);
 		}
 		return result.failure(InvalidSyntaxError("Expected int, float, string, boolean, identifier, '+', '-' or '('", this->currentToken.startPos, this->currentToken.endPos));
@@ -831,7 +831,7 @@ public:
 
 	ParserResult binaryOperation(std::string function, std::vector<TokenType> operators, std::string function2, bool required, Token tok) {
 		Node* left = new Node();
-		GloabalAllocator.registerAllocation(left);
+		GlobalAllocator.registerAllocation(left);
 		ParserResult result = ParserResult();
 		if (function == "compareExpression") left = new Node(result.Register(this->compareExpression(tok)));
 		if (function == "normalExpression") left = new Node(result.Register(this->normalExpression(tok)));
@@ -840,7 +840,7 @@ public:
 		if (function == "factor") left = new Node(result.Register(this->factor(tok)));
 		if (function == "atom") left = new Node(result.Register(this->atom(tok)));
 		if (function == "nucleus") left = new Node(result.Register(this->nucleus(tok)));
-		GloabalAllocator.registerAllocation(left);
+		GlobalAllocator.registerAllocation(left);
 		RET_ERROR;
 
 		int adv = 0;
@@ -850,7 +850,7 @@ public:
 			result.regAdvance();
 			adv++;
 			Node* right = new Node();
-			GloabalAllocator.registerAllocation(right);
+			GlobalAllocator.registerAllocation(right);
 			if (function2 == "compareExpression") right = new Node(result.Register(this->compareExpression(tok)));
 			if (function2 == "normalExpression") right = new Node(result.Register(this->normalExpression(tok)));
 			if (function2 == "expression") right = new Node(result.Register(this->expression(tok)));
@@ -858,17 +858,17 @@ public:
 			if (function2 == "factor") right = new Node(result.Register(this->factor(tok)));
 			if (function2 == "atom") right = new Node(result.Register(this->atom(tok)));
 			if (function2 == "nucleus") right = new Node(result.Register(this->nucleus(tok)));
-			GloabalAllocator.registerAllocation(right);
+			GlobalAllocator.registerAllocation(right);
 			RET_ERROR;
 			BinaryNode* bn = new BinaryNode(opToken, left, right);
 			left = new Node(bn);
-			GloabalAllocator.registerAllocation(left);
-			GloabalAllocator.registerAllocation(bn);
+			GlobalAllocator.registerAllocation(left);
+			GlobalAllocator.registerAllocation(bn);
 		}
 		return result.success(*left);
 	}
 
-	
+
 	ParserResult binaryOperation(std::string function, std::vector<TokenType> operators, bool required, Token tok) {
 		return this->binaryOperation(function, operators, function, required, tok);
 	}
