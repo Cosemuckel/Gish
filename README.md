@@ -99,7 +99,7 @@ Variables are used to store Values and can later be modified. To declare a varia
     * note: Arrays of arrays are currently not yet supported
 
 To use a variable in operations simply type its name. </br>
-If you want to see the value of the variable, you can just type its name if you have `Last interpreter output` enabled in the [config](#Config). You can also see all currently defined Variables and their values by using the `show all defined Symbols` in the config. </br>
+If you want to see the value of the variable, you can just type its name if you have `Last interpreter output` enabled in the [config](#Config). You can also see all currently defined Variables and their values by using the `show all defined Symbols` in the [config](#Config). </br>
 To undefine a variable use `undefine the variable VAR_NAME;`
 
 #### Operating on variables
