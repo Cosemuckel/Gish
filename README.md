@@ -5,14 +5,14 @@ A interpreted programming language with word based syntax.
 
 
 ### 2. Interface
-1. Menu </br>
+#### Menu </br>
   1. `run file, return to this screen` execute a gish file, and keep defined variables and functions after execution
   2. `run file, delete all data and return to this screen` execute a gish file and delete all defined variables and functions after execution
   3. `run file and then continue in terminal mode` execute a gish file and continue directly in interpreter prompt without deleting any data
   4. `start terminal mode` start the interpreter prompt to enter code manually
   5. `reset all data` delete all defined variables and functions
   6. `open config` open gish settings
-2. Config (open with '6' on main menu)</br>
+#### Config (open with '6' on main menu)</br>
   1. `Output lexing output`(`true/false`) show the generated list of tokens from the input. This is probably not useful to you, its more for debugging reasons
   2. `Output parsing output`(`true/false`) show the generated syntax tree. This is probably not useful to you, its more for debugging reasons
   3. `Output interpreter output`(`true/false`) shows the lexing output of every executed instruction. This is probably not useful to you, its more for debugging reasons (note: many of them will be zero)
