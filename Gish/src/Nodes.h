@@ -184,7 +184,7 @@ class PropertyNode : public BaseNode {
 public:
 
 	Token varNameToken = null;
-	int type = 0; //0 => Typeof; 1 => sizeoft
+	int type = 0; //0 => Typeof; 1 => sizeof
 
 
 	PropertyNode(Token varNameToken, int type) {
@@ -195,7 +195,7 @@ public:
 		this->type = type;
 	}
 	std::string toString() {
-		return (this->type == 0 ? "typeof " : "sizeof") + this->varNameToken.toString();
+		return (!this->type ? "typeof " : "sizeof ") + this->varNameToken.toString();
 	}
 
 	void clear() {
@@ -419,6 +419,19 @@ public:
 
 };
 
+class LoopNode : public BaseNode {
+public:
+
+	Node* condition;
+	Node* body;
+
+	std::string toString();
+	void clear();
+	LoopNode(const LoopNode& node, Allocator allocationTable, bool passOn);
+	LoopNode(Node* contidtion, Node* body);
+	LoopNode(Node* contidtion, Node* body, Allocator allocationTable, bool passOn);
+};
+
 class Node : public Object {
 public:
 	void* nodePtr = nullptr;
@@ -447,6 +460,7 @@ public:
 		case Class::OutputNode: return ((OutputNode*)this->nodePtr)->startPos; break;
 		case Class::InputNode: return ((InputNode*)this->nodePtr)->startPos; break;
 		case Class::InterruptionNode: return ((InterruptionNode*)this->nodePtr)->startPos; break;
+		case Class::LoopNode: return ((LoopNode*)this->nodePtr)->startPos; break;
 		}
 	};
 	Position getEndPos() {
@@ -473,6 +487,7 @@ public:
 		case Class::OutputNode: return ((OutputNode*)this->nodePtr)->endPos; break;
 		case Class::InputNode: return ((InputNode*)this->nodePtr)->endPos; break;
 		case Class::InterruptionNode: return ((InterruptionNode*)this->nodePtr)->endPos; break;
+		case Class::LoopNode: return ((LoopNode*)this->nodePtr)->endPos; break;
 		}
 	};
 
@@ -500,6 +515,7 @@ public:
 		case Class::OutputNode: ((OutputNode*)this->nodePtr)->clear(); break;
 		case Class::InputNode: ((InputNode*)this->nodePtr)->clear(); break;
 		case Class::InterruptionNode: ((InterruptionNode*)this->nodePtr)->clear(); break;
+		case Class::LoopNode: ((LoopNode*)this->nodePtr)->clear(); break;
 		}
 	}
 
@@ -521,6 +537,7 @@ public:
 			case Class::UnaryNode: this->nodePtr = new UnaryNode(*(UnaryNode*)node.nodePtr, allocationTable, true); break;
 			case Class::BinaryNode: this->nodePtr = new BinaryNode(*(BinaryNode*)node.nodePtr, allocationTable, true); break;
 			case Class::IfNode: this->nodePtr = new IfNode(*(IfNode*)node.nodePtr, allocationTable, true); break;
+			case Class::LoopNode: this->nodePtr = new LoopNode(*(LoopNode*)node.nodePtr, allocationTable, true); break;
 			case Class::IterationNode: this->nodePtr = new IterationNode(*(IterationNode*)node.nodePtr, allocationTable, true); break;
 			case Class::TimedIterationNode: this->nodePtr = new TimedIterationNode(*(TimedIterationNode*)node.nodePtr, allocationTable, true); break;
 			case Class::FunctionDefinitionNode: this->nodePtr = new FunctionDefinitionNode(*(FunctionDefinitionNode*)node.nodePtr, allocationTable, true); break;
@@ -557,6 +574,7 @@ public:
 			case Class::OutputNode: this->nodePtr = new OutputNode(*(OutputNode*)node.nodePtr); break;
 			case Class::InputNode: this->nodePtr = new InputNode(*(InputNode*)node.nodePtr); break;
 			case Class::InterruptionNode: this->nodePtr = new InterruptionNode(*(InterruptionNode*)node.nodePtr); break;
+			case Class::LoopNode: this->nodePtr = new LoopNode(*(LoopNode*)node.nodePtr); break;
 			}
 		}
 		allocationTable.registerAllocation(this->nodePtr);
@@ -663,6 +681,10 @@ public:
 		this->nodePtr = node;
 		this->type = Class::InterruptionNode;
 	}
+	Node(LoopNode* node) {
+		this->nodePtr = node;
+		this->type = Class::LoopNode;
+	}
 	std::string toString() {
 		switch (this->type) {
 		case Class::NumberNode: return ((NumberNode*)this->nodePtr)->toString(); break;
@@ -688,6 +710,7 @@ public:
 		case Class::OutputNode: return ((OutputNode*)this->nodePtr)->toString(); break;
 		case Class::InputNode: return ((InputNode*)this->nodePtr)->toString(); break;
 		case Class::InterruptionNode: return ((InterruptionNode*)this->nodePtr)->toString(); break;
+		case Class::LoopNode: return ((LoopNode*)this->nodePtr)->toString(); break;
 		default:
 			return "Null";
 		}
@@ -1218,4 +1241,28 @@ std::string OutputNode::toString() {
 	if (this->object == nullptr)
 		return "print a newline";
 	return (this->type == 0 ? "print " : "consoleCMD ") + this->object->toString();
+}
+
+LoopNode::LoopNode(Node* condition, Node* body) {
+	this->condition = condition;
+	this->body = body;
+}
+LoopNode::LoopNode(Node* condition, Node* body, Allocator allocationTable, bool passOn) {
+	this->condition = new Node(*condition, allocationTable, passOn);
+	allocationTable.registerAllocation(this->condition);
+	this->body = new Node(*body, allocationTable, passOn);
+	allocationTable.registerAllocation(this->body);
+}
+LoopNode::LoopNode(const LoopNode& node, Allocator allocationTable, bool passOn) {
+	this->condition = new Node(*node.condition, allocationTable, passOn);
+	allocationTable.registerAllocation(this->condition);
+	this->body = new Node(*node.body, allocationTable, passOn);
+	allocationTable.registerAllocation(this->body);
+}
+void LoopNode::clear() {
+	this->condition->clear();
+	this->body->clear();
+}
+std::string LoopNode::toString() {
+	return std::string("as long as ") + this->condition->toString() + " do " + this->body->toString();
 }

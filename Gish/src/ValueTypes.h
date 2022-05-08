@@ -86,6 +86,7 @@ enum class Class {
 	OutputNode,
 	InputNode,
 	InterruptionNode,
+	LoopNode,
 	ParserResult,
 	Parser
 };

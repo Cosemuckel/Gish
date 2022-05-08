@@ -39,6 +39,8 @@ TokenType TT_THE  ("HELP", "THE");
 TokenType TT_TYPE ("HELP", "TYPE");
 TokenType TT_WITH ("HELP", "WITH");
 TokenType TT_A    ("HELP", "A");
+TokenType TT_AS   ("HELP", "AS");
+TokenType TT_LONG ("HELP", "LONG");
 
 TokenType TT_IDENTIFIER ("NAME", "IDENTIFIER");
 

@@ -329,6 +329,8 @@ public:
 		else if (string == "the")  tokenType = TT_THE;
 		else if (string == "type") tokenType = TT_TYPE;
 		else if (string == "a")    tokenType = TT_A;
+		else if (string == "as")   tokenType = TT_AS;
+		else if (string == "long")   tokenType = TT_LONG;
 
 		else if (string == "or")    tokenType = TT_OR;
 		else if (string == "and")    tokenType = TT_AND;
@@ -417,7 +419,6 @@ public:
 
 		if (dotCount == 0)
 			return Token(TT_INT, Value(Number(std::stoll(numString))), startPos, this->position);
-		std::cout << numString << "\n" << std::stod(numString) << "\n";
 		return Token(TT_DOUBLE, Value(Number(std::stod(numString))), startPos, this->position);
 	}
 

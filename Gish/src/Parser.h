@@ -303,6 +303,23 @@ public:
 				}
 				return result.failure(InvalidSyntaxError("Expected 'iterations' or 'seconds'", this->currentToken.startPos, this->currentToken.endPos));
 			}
+			if (this->currentToken.matches(TT_AS)) {
+				REG_ADVANCE;
+				if (!this->currentToken.matches(TT_LONG))
+					return result.failure(InvalidSyntaxError("Expected 'long'", this->currentToken.startPos, this->currentToken.endPos));
+				REG_ADVANCE;
+				if (!this->currentToken.matches(TT_AS))
+					return result.failure(InvalidSyntaxError("Expected 'as'", this->currentToken.startPos, this->currentToken.endPos));
+				REG_ADVANCE;
+				Node* condition = new Node(result.Register(this->expression(tok)));
+				GlobalAllocator.registerAllocation(condition);
+				RET_ERROR;
+
+				LoopNode* node = new LoopNode(condition, body);
+				GlobalAllocator.registerAllocation(node);
+				return result.success(node);
+
+			}
 
 			return result.success(*body);
 		}
@@ -728,10 +745,10 @@ public:
 			result.regAdvance();
 			if (!this->currentToken.matches(TT_IDENTIFIER))
 				return result.failure(InvalidSyntaxError("Expected identifier", this->currentToken.startPos, this->currentToken.endPos));
-			token = this->currentToken;
+			Token VarNametoken = this->currentToken;
 			this->advance();
 			result.regAdvance();
-			PropertyNode* node = new PropertyNode(token, !token.matches(TT_KEYWORD_TYPEOF));
+			PropertyNode* node = new PropertyNode(VarNametoken, !token.matches(TT_KEYWORD_TYPEOF));
 			GlobalAllocator.registerAllocation(node);
 			return result.success(node);
 		}

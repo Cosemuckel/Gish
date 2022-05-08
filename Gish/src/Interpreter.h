@@ -4,7 +4,7 @@
 class RuntimeError : public Error {
 public:
 
-	RuntimeError(std::string details, Position startPos, Position endPos) 
+	RuntimeError(std::string details, Position startPos, Position endPos)
 		: Error("RuntimeError", details, startPos, endPos) {}
 
 };
@@ -154,12 +154,12 @@ public:
 	InterpretedValue ored(InterpretedValue value) {
 		if (this->type == Value::valueType::Bool && value.type == Value::valueType::Bool)
 			return InterpretedValue(Bool(value.cBool.value || this->cBool.value), this->startPos, value.endPos, Error(null));
-		else return InterpretedValue(InterpretedValue(null), this->startPos, value.endPos, RuntimeError(std::string("Operants must be of type Boolean, but are of type ") + this->Name() + " and " + value.Name(), startPos, endPos));
+		else return InterpretedValue(InterpretedValue(null), this->startPos, value.endPos, RuntimeError(std::string("Operants must be of type Boolean type, but are of type ") + this->Name() + " and " + value.Name(), startPos, endPos));
 	}
 	InterpretedValue anded(InterpretedValue value) {
 		if (this->type == Value::valueType::Bool && value.type == Value::valueType::Bool)
 			return InterpretedValue(Bool(value.cBool.value && this->cBool.value), this->startPos, value.endPos, Error(null));
-		else return InterpretedValue(InterpretedValue(null), this->startPos, value.endPos, RuntimeError(std::string("Operants must be of type Boolean, but are of type ") + this->Name() + " and " + value.Name(), startPos, endPos));
+		else return InterpretedValue(InterpretedValue(null), this->startPos, value.endPos, RuntimeError(std::string("Operants must be of Boolean type, but are of type ") + this->Name() + " and " + value.Name(), startPos, endPos));
 	}
 
 
@@ -271,7 +271,7 @@ public:
 
 	}
 
-	Function(const Function& function) 
+	Function(const Function& function)
 		:Function(function.Name, function.body, function.arguments, function.returnType, function.mInterpreter) {
 	}
 
@@ -305,7 +305,7 @@ public:
 		this->arguments.clear();
 		this->mAllocations.clearAllAllocations();
 	}
-	
+
 	nullCMP;
 	Function nullEQ;
 	Function nullCon;
@@ -322,17 +322,15 @@ public:
 
 	}
 
-	InterpretedValue get(std::string key) {
-		InterpretedValue value;
+	InterpretedValue* get(std::string key) {
 		try {
-			value = this->symbols.at(key);
+			return &this->symbols.at(key);
 		}
 		catch (std::out_of_range) {
 			if (this->parentTable != nullptr)
 				return this->parentTable->get(key);
-			return InterpretedValue(null);
+			return nullptr;
 		}
-		return value;
 	}
 
 	void set(std::string name, InterpretedValue value) {
@@ -438,6 +436,7 @@ public:
 		case Class::OutputNode: return this->visitOutputNode(*(OutputNode*)node.nodePtr, context, inFunction);
 		case Class::InputNode: return this->visitInputNode(*(InputNode*)node.nodePtr, context, inFunction);
 		case Class::InterruptionNode: return this->visitInterruptionNode(*(InterruptionNode*)node.nodePtr, context, inFunction);
+		case Class::LoopNode: return this->visitLoopNode(*(LoopNode*)node.nodePtr, context, inFunction);
 		default:
 			return RuntimeResult({}, null);
 		}
@@ -460,7 +459,7 @@ public:
 
 	RuntimeResult visitNumberNode(NumberNode node, Context& context, bool inFunction) {
 		return RuntimeResult().success(InterpretedValue(node.token.value, node.startPos, node.endPos));
-	} 
+	}
 
 	RuntimeResult visitStringNode(StringNode node, Context& context, bool inFunction) {
 		return RuntimeResult().success(InterpretedValue(node.token.value, node.startPos, node.endPos));
@@ -532,7 +531,7 @@ public:
 	RuntimeResult visitPropertyNode(PropertyNode node, Context& context, bool inFunction) {
 		RuntimeResult result = RuntimeResult();
 		std::string variableName = node.varNameToken.value.cString;
-		InterpretedValue variable = context.symbolTable.get(variableName);
+		InterpretedValue variable = *context.symbolTable.get(variableName);
 		if (variable == null)
 			return result.failure(RuntimeError(std::string("Variable '") + variableName + "' is not defined", node.startPos, node.endPos));
 		if (!node.type)
@@ -548,7 +547,7 @@ public:
 		InterpretedValue value = result.Register(this->visit(*node.value, context, inFunction));
 		RET_ERROR;
 		RET_RETA(value);
-		if (context.symbolTable.get(variableName) != null)
+		if (context.symbolTable.get(variableName) != nullptr)
 			return result.failure(RuntimeError(std::string("Variable '") + variableName + "' is already defined", node.startPos, node.endPos));
 		if (node.type != value.type)
 			return result.failure(RuntimeError(std::string("Variable '") + variableName + "' is of type " + Value::Name(node.type) + " but value is of type " + value.Name(), node.startPos, node.endPos));
@@ -562,10 +561,10 @@ public:
 		InterpretedValue value = result.Register(this->visit(*node.value, context, inFunction));
 		RET_ERROR;
 		RET_RETA(value);
-		if (context.symbolTable.get(variableName) == null)
+		if (context.symbolTable.get(variableName) == nullptr)
 			return result.failure(RuntimeError(std::string("Variable '") + variableName + "' is not defined", node.startPos, node.endPos));
-		if (value.type != context.symbolTable.get(variableName).type)
-			return result.failure(RuntimeError(std::string("Variable '") + variableName + "' is of type " + context.symbolTable.get(variableName).Name() + " but value is of type " + value.Name(), node.startPos, node.endPos));
+		if (value.type != context.symbolTable.get(variableName)->type)
+			return result.failure(RuntimeError(std::string("Variable '") + variableName + "' is of type " + context.symbolTable.get(variableName)->Name() + " but value is of type " + value.Name(), node.startPos, node.endPos));
 		context.symbolTable.set(variableName, value);
 		return result.success(value);
 	}
@@ -573,16 +572,16 @@ public:
 	RuntimeResult visitVarIndexReAssignNode(VarIndexReAssignNode node, Context& context, bool inFunction) {
 		RuntimeResult result = RuntimeResult();
 		std::string variableName = node.varNameToken.value.cString;
-		if (context.symbolTable.get(variableName) == null)
+		if (context.symbolTable.get(variableName) == nullptr)
 			return result.failure(RuntimeError(std::string("Variable '") + variableName + "' is not defined", node.startPos, node.endPos));
-		if (context.symbolTable.get(variableName).type != Value::valueType::Array)
+		if (context.symbolTable.get(variableName)->type != Value::valueType::Array)
 			return result.failure(RuntimeError(std::string("Variable '") + variableName + "' is not of Array type", node.startPos, node.endPos));
 		InterpretedValue index = result.Register(this->visit(*node.index, context, inFunction));
 		if (index.type != Value::valueType::Number)
 			return result.failure(RuntimeError("Can't read index '" + index.toString() + "' of '" + variableName + "' : index is of wrong type", node.startPos, node.endPos));
 		if (index.cNumber.type)
 			return result.failure(RuntimeError("Can't read index of type double: index '" + index.toString() + "' of '" + variableName + "'", node.startPos, node.endPos));
-		if ((long long)index.cNumber.value < 0 || unsigned long long((long long)index.cNumber.value) >= context.symbolTable.get(variableName).cVector.size())
+		if ((long long)index.cNumber.value < 0 || unsigned long long((long long)index.cNumber.value) >= context.symbolTable.get(variableName)->cVector.size())
 			return result.failure(RuntimeError("Can't read index '" + index.toString() + "' of '" + variableName + "' : index is out of range", node.startPos, node.endPos));
 		InterpretedValue value = result.Register(this->visit(*node.value, context, inFunction));
 		RET_ERROR;
@@ -594,7 +593,7 @@ public:
 	RuntimeResult visitVarAccessNode(VarAccessNode node, Context& context, bool inFunction) {
 		RuntimeResult result = RuntimeResult();
 		std::string variableName = node.varNameToken.value.cString;
-		InterpretedValue variable = context.symbolTable.get(variableName);
+		InterpretedValue variable = *context.symbolTable.get(variableName);
 		if (variable == null)
 			return result.failure(RuntimeError(std::string("Variable '") + variableName + "' is not defined", node.startPos, node.endPos));
 		return result.success(variable);
@@ -603,7 +602,7 @@ public:
 	RuntimeResult visitVarIndexAccessNode(VarIndexAccessNode node, Context& context, bool inFunction) {
 		RuntimeResult result = RuntimeResult();
 		std::string variableName = node.varNameToken.value.cString;
-		InterpretedValue variable = context.symbolTable.get(variableName);
+		InterpretedValue variable = *context.symbolTable.get(variableName);
 		if (variable == null)
 			return result.failure(RuntimeError(std::string("Variable '") + variableName + "' is not defined", node.startPos, node.endPos));
 		if (variable.type != Value::valueType::Array && node.type == 0)
@@ -674,6 +673,28 @@ public:
 		return result.failure(RuntimeError("For-Condition is not of type int-Number", node.startPos, node.endPos));
 	}
 
+	RuntimeResult visitLoopNode(LoopNode node, Context& context, bool inFunction) {
+		RuntimeResult result = RuntimeResult();
+		InterpretedValue value = result.Register(this->visit(*node.condition, context, inFunction));
+		if (value.type == Value::valueType::Bool) {
+			bool shouldLoop = false;
+			shouldLoop = value.cBool.value;
+			InterpretedValue last = InterpretedValue();
+			while (true) {
+				value = result.Register(this->visit(*node.condition, context, inFunction));
+				shouldLoop = value.cBool.value;
+				if (!shouldLoop)
+					break;
+				last = result.Register(this->visit(*node.body, context, inFunction));
+				RET_ERROR;
+				RET_RETA(last)
+			}
+			return last;
+		}
+		return result.failure(RuntimeError("Loop-Condition is not of type Boolean", node.startPos, node.endPos));
+
+	}
+
 	RuntimeResult visitTimedIterationNode(TimedIterationNode node, Context& context, bool inFunction) {
 		RuntimeResult result = RuntimeResult();
 		InterpretedValue amount = result.Register(this->visit(*node.seconds, context, inFunction));
@@ -715,16 +736,6 @@ public:
 		RuntimeResult result = RuntimeResult();
 		std::vector<InterpretedValue> arguments;
 
-		/*printf("  -Functions:\n");
-		auto it2 = context.functionTable.symbols.begin();
-		for (size_t i = 0; i < context.functionTable.symbols.size(); i++) {
-			printf("   %s %s: %s", Value::Name(it2->second.returnType).c_str(), it2->first.c_str(), it2->second.argumentString().c_str());
-			std::advance(it2, 1);
-		}
-		printf("\n");
-
-		std::cout <<( context.functionTable.get(node.varNameToken.value.cString) == nullptr )<< "???\n";*/
-
 		if (context.functionTable.get(node.varNameToken.value.cString) == nullptr)
 			return result.failure(RuntimeError(std::string("Function '") + node.varNameToken.value.cString + "' is not defined!", node.startPos, node.endPos));
 
@@ -739,7 +750,6 @@ public:
 		RET_ERROR;
 		RET_RETA(returnedValue);
 		return result.success(returnedValue);
-		//return result.success(InterpretedValue(Number(0), null, null));
 	}
 
 	RuntimeResult visitReturnNode(ReturnNode node, Context& context, bool inFunction) {
@@ -750,12 +760,12 @@ public:
 		RET_RETA(returnValue);
 		return result.success(returnValue).shouldReturn();
 	}
-	
+
 	RuntimeResult visitUndefineNode(UndefineNode node, Context& context, bool inFunction) {
 		RuntimeResult result = RuntimeResult();
 
 		if (!node.type) {
-			if (context.symbolTable.get(node.varNameToken.value.cString) == null)
+			if (context.symbolTable.get(node.varNameToken.value.cString) == nullptr)
 				return result.failure(RuntimeError(std::string("'") + node.varNameToken.value.cString + "' is not defined", node.startPos, node.endPos));
 			context.symbolTable.remove(node.varNameToken.value.cString);
 		}
@@ -793,7 +803,7 @@ public:
 			return result.success(commandToExecute);
 		}
 	}
-	
+
 	RuntimeResult visitInputNode(InputNode node, Context& context, bool inFuntion) {
 		RuntimeResult result = RuntimeResult();
 
@@ -801,7 +811,7 @@ public:
 
 		return result.success(InterpretedValue(string, node.startPos, node.endPos));
 	}
-	
+
 	RuntimeResult visitInterruptionNode(InterruptionNode node, Context& context, bool inFuntion) {
 		return RuntimeResult().failure(RuntimeError("Can't '" + node.toString() + "' here", node.startPos, node.endPos));
 	}
