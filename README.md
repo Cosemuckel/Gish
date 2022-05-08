@@ -12,7 +12,8 @@ A interpreted programming language with word based syntax.
   4. `start terminal mode` start the interpreter prompt to enter code manually
   5. `reset all data` delete all defined variables and functions
   6. `open config` open gish settings
-#### Config (open with '6' on main menu)</br>
+#### Config
+  (open with '6' on main menu)</br>
   1. `Output lexing output`(`true/false`) show the generated list of tokens from the input. This is probably not useful to you, its more for debugging reasons
   2. `Output parsing output`(`true/false`) show the generated syntax tree. This is probably not useful to you, its more for debugging reasons
   3. `Output interpreter output`(`true/false`) shows the lexing output of every executed instruction. This is probably not useful to you, its more for debugging reasons (note: many of them will be zero)
@@ -86,7 +87,7 @@ Variables are used to store Values and can later be modified. To declare a varia
   The Value must match the variable type.
 
 To use a variable in operations simply type its name. </br>
-If you want to see the value of the variable, you can just type its name if you have `Last interpreter output` enabled in the [config](#Config). You can also see all currently defined Variables and their values by using the `show all defined Symbols` in the config. </br>
+If you want to see the value of the variable, you can just type its name if you have `Last interpreter output` enabled in the [config](#Config). You can also see all currently defined Variables and their values by using the `show all defined Symbols` in the [config](#Config). </br>
 To undefine a variable use `undefine the variable VAR_NAME;`
 
 ##### Operating on variables
