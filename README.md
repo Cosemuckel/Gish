@@ -1,10 +1,10 @@
 # Gish
 A interpreted programming language with word based syntax.
 
-# 1. Installation
+## 1. Installation
 Download the build [here](https://github.com/Cosemuckel/Gish/releases/tag/Interpreter) and run it. 
 
-### 2. Interface
+## 2. Interface
 #### Menu </br>
   1. `run file, return to this screen` execute a gish file, and keep defined variables and functions after execution
   2. `run file, delete all data and return to this screen` execute a gish file and delete all defined variables and functions after execution
