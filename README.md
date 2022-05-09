@@ -4,7 +4,7 @@ I am still working on this, it is far from done. I created this language to be m
 
 
 ## 1. Installation
-Download the build [here](https://github.com/Cosemuckel/Gish/releases/tag/Interpreter) and run it. 
+Download the build [here](https://github.com/Cosemuckel/Gish/releases/tag/v0.1) and run it. 
 
 ## 2. Interface
 #### Menu </br>
