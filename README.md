@@ -1,8 +1,8 @@
 # Gish
 A interpreted programming language with word based syntax.
 
-## 1. Installation
-
+# 1. Installation
+Download the build [here](https://github.com/Cosemuckel/Gish/releases/tag/Interpreter) and run it. 
 
 ### 2. Interface
 #### Menu </br>
