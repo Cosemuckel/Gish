@@ -14,15 +14,16 @@
 * references
 
 ### stil next goals
+* save ast
 * save config
 * multiword functions and variables
 	- words (instead of 'identifier')
 		-> ```this->currentToken.matches("AHAH");```
 	- functions can take argument at any place in the function by using % to specify location: ```Number subtract % from % taking Number n1, Number n2: { return n2 - n1; }; ``` ->```subtract 3 from 2;```
-	- if references exist: ```Number subtract % from % taking Number n1, Number reference n2: { n2 equals n2 - n1; }; ```</br>
+	- once references exist: ```Number subtract % from % taking Number n1, Number reference n2: { n2 equals n2 - n1; }; ```</br>
 	^ damn it, subtract exist, but you get the drill
 * if expressions
-* * typeof function
+* returntypeof function
 ### bug fixes etc.
 * fix division (and maybe others) `int` / `double` mismatch
 

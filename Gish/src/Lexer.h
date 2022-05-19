@@ -417,7 +417,7 @@ public:
 			this->advance();
 		}
 
-		if (dotCount == 0)
+		if (!dotCount)
 			return Token(TT_INT, Value(Number(std::stoll(numString))), startPos, this->position);
 		return Token(TT_DOUBLE, Value(Number(std::stod(numString))), startPos, this->position);
 	}

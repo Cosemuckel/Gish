@@ -10,10 +10,16 @@ public:
 };
 
 std::string stringTimes(std::string string, Number number) {
-	return "";
+	int size = double(string.length()) * ( number.type ? number.value.doubleVal : number.value.longLongVal );
+	char* str = (char*)malloc(size + 1);
+	for (int i = 0; i < size; i++) {
+		str[i] = string[i % string.length()];
+	}
+	str[size] = '\0';
+	return std::string(str);
 }
 std::string stringDivis(std::string string, Number number) {
-	return "";
+	return stringTimes(string, number.inverse());
 }
 
 class InterpretedValue;
@@ -77,13 +83,13 @@ public:
 			if (value.type == Value::valueType::Number)
 				return InterpretedValue(this->cNumber.times(value.cNumber), this->startPos, value.endPos, null);
 			if (value.type == Value::valueType::String)
-				if (this->cNumber.type ? (double)this->cNumber.value < 0.0f : (long long)this->cNumber.value < 0ll) return InterpretedValue(InterpretedValue(null), this->startPos, value.endPos, RuntimeError(std::string("Can't mutiple a String with a negative Number"), startPos, endPos));
+				if (this->cNumber.type ? this->cNumber.value.doubleVal < 0.0f : this->cNumber.value.longLongVal < 0ll) return InterpretedValue(InterpretedValue(null), this->startPos, value.endPos, RuntimeError(std::string("Can't mutiple a String with a negative Number"), startPos, endPos));
 				else return InterpretedValue(stringTimes(value.cString, this->cNumber), this->startPos, value.endPos, null);
 			return InterpretedValue(InterpretedValue(null), this->startPos, value.endPos, RuntimeError(std::string("Can't multiply a Number with a ") + value.Name(), startPos, endPos));
 		}
 		if (this->type == Value::valueType::String) {
 			if (value.type == Value::valueType::Number)
-				if (value.cNumber.type ? (double)value.cNumber.value < 0.0f : (long long)value.cNumber.value < 0ll) return InterpretedValue(InterpretedValue(null), this->startPos, value.endPos, RuntimeError(std::string("Can't mutiple a String with a negative Number"), startPos, endPos));
+				if (value.cNumber.type ? value.cNumber.value.doubleVal < 0.0f : value.cNumber.value.longLongVal < 0ll) return InterpretedValue(InterpretedValue(null), this->startPos, value.endPos, RuntimeError(std::string("Can't mutiple a String with a negative Number"), startPos, endPos));
 				else return InterpretedValue(stringTimes(this->cString, value.cNumber), this->startPos, value.endPos, null);
 			return InterpretedValue(InterpretedValue(null), this->startPos, value.endPos, RuntimeError(std::string("Can't multiply a String with a ") + value.Name(), startPos, endPos));
 		}
@@ -92,7 +98,7 @@ public:
 	InterpretedValue dividedBy(InterpretedValue value) {
 		if (this->type == Value::valueType::Number) {
 			if (value.type == Value::valueType::Number)
-				if (value.cNumber.type ? (double)value.cNumber.value == 0.0f : (long long)value.cNumber.value == 0ll) return InterpretedValue(InterpretedValue(null), this->startPos, value.endPos, RuntimeError(std::string("Can't divide by 0"), startPos, endPos));
+				if (value.cNumber.type ? value.cNumber.value.doubleVal == 0.0f : value.cNumber.value.longLongVal == 0ll) return InterpretedValue(InterpretedValue(null), this->startPos, value.endPos, RuntimeError(std::string("Can't divide by 0"), startPos, endPos));
 				else return InterpretedValue(this->cNumber.over(value.cNumber), this->startPos, value.endPos, null);
 			if (value.type == Value::valueType::String)
 				return InterpretedValue(stringDivis(value.cString, this->cNumber), this->startPos, value.endPos, null);
@@ -115,9 +121,9 @@ public:
 	}
 	InterpretedValue factorial() {
 		if (this->type == Value::valueType::Number) {
-			if (this->cNumber.type ? ((double)this->cNumber.value < 0 || (double)this->cNumber.value != std::floor((double)this->cNumber.value)) : (long long)this->cNumber.value < 0)
+			if (this->cNumber.type ? (this->cNumber.value.doubleVal < 0 || this->cNumber.value.doubleVal != std::floor(this->cNumber.value.doubleVal)) : this->cNumber.value.longLongVal < 0)
 				return InterpretedValue(InterpretedValue(null), this->startPos, this->endPos, RuntimeError(std::string("Can't factorialize a fraction or a negative"), startPos, endPos));
-			if (this->cNumber.type ? ((double)this->cNumber.value > 12) : (long long)this->cNumber.value > 12)
+			if (this->cNumber.type ? (this->cNumber.value.doubleVal > 12) : this->cNumber.value.longLongVal > 12)
 				return InterpretedValue(InterpretedValue(null), this->startPos, this->endPos, RuntimeError(std::string("Number is too big"), startPos, endPos));
 			return InterpretedValue(this->cNumber.factorial(), this->startPos, this->endPos, null);
 		}
@@ -526,6 +532,8 @@ public:
 			return RuntimeResult(left.ored(right));
 		if (node.opToken.matches(TT_AND))
 			return RuntimeResult(left.anded(right));
+
+		return result.failure(RuntimeError("unknown operator: " + node.opToken.toString(), node.opToken.startPos, node.opToken.endPos));
 	}
 
 	RuntimeResult visitPropertyNode(PropertyNode node, Context& context, bool inFunction) {
@@ -581,12 +589,12 @@ public:
 			return result.failure(RuntimeError("Can't read index '" + index.toString() + "' of '" + variableName + "' : index is of wrong type", node.startPos, node.endPos));
 		if (index.cNumber.type)
 			return result.failure(RuntimeError("Can't read index of type double: index '" + index.toString() + "' of '" + variableName + "'", node.startPos, node.endPos));
-		if ((long long)index.cNumber.value < 0 || unsigned long long((long long)index.cNumber.value) >= context.symbolTable.get(variableName)->cVector.size())
+		if (index.cNumber.value.longLongVal < 0 || unsigned long long(index.cNumber.value.longLongVal) >= context.symbolTable.get(variableName)->cVector.size())
 			return result.failure(RuntimeError("Can't read index '" + index.toString() + "' of '" + variableName + "' : index is out of range", node.startPos, node.endPos));
 		InterpretedValue value = result.Register(this->visit(*node.value, context, inFunction));
 		RET_ERROR;
 		RET_RETA(value);
-		context.symbolTable.symbols[variableName].cVector[(long long)index.cNumber.value] = InterpretedValue(value);
+		context.symbolTable.symbols[variableName].cVector[index.cNumber.value.longLongVal] = InterpretedValue(value);
 		return result.success(value);
 	}
 
@@ -616,13 +624,13 @@ public:
 			return result.failure(RuntimeError("Can't read index of type double: index '" + index.toString() + "' of '" + variableName + "'", node.startPos, node.endPos));
 
 		if (node.type == 0) {
-			if ((long long)index.cNumber.value < 0 || unsigned long long((long long)index.cNumber.value) >= variable.cVector.size())
+			if (index.cNumber.value.longLongVal < 0 || unsigned long long(index.cNumber.value.longLongVal) >= variable.cVector.size())
 				return result.failure(RuntimeError("Can't read index '" + index.toString() + "' of '" + variableName + "' : index is out of range", node.startPos, node.endPos));
-			return result.success(InterpretedValue(variable.cVector[(long long)index.cNumber.value], node.startPos, node.endPos));
+			return result.success(InterpretedValue(variable.cVector[index.cNumber.value.longLongVal], node.startPos, node.endPos));
 		}
-		if ((long long)index.cNumber.value < 0 || unsigned long long((long long)index.cNumber.value) >= variable.cString.size())
+		if (index.cNumber.value.longLongVal < 0 || unsigned long long(index.cNumber.value.longLongVal) >= variable.cString.size())
 			return result.failure(RuntimeError("Can't read character '" + index.toString() + "' of '" + variableName + "' : index is out of range", node.startPos, node.endPos));
-		return result.success(InterpretedValue(std::string("") + variable.cString[(long long)index.cNumber.value], node.startPos, node.endPos));
+		return result.success(InterpretedValue(std::string("") + variable.cString[index.cNumber.value.longLongVal], node.startPos, node.endPos));
 	}
 
 	RuntimeResult visitIfNode(IfNode node, Context& context, bool inFunction) {
@@ -653,19 +661,12 @@ public:
 		if (amount.type == Value::valueType::Number) {
 			if (amount.cNumber.type)
 				return result.failure(RuntimeError("For-Condition is not of type int-Number", node.startPos, node.endPos));
-			long long iterations = (long long)amount.cNumber.value;
+			long long iterations = amount.cNumber.value.longLongVal;
 			InterpretedValue last = InterpretedValue();
-			for (int i = 0; i < iterations; i++) {
-				if (i == iterations - 1) {
-					last = result.Register(this->visit(*node.body, context, inFunction));
-					RET_ERROR;
-					RET_RETA(last);
-				}
-				else {
-					result.Register(this->visit(*node.body, context, inFunction));
-					RET_ERROR;
-					RET_RETA(last);
-				}
+			for (long long i = iterations; i--;) {
+				last = result.Register(this->visit(*node.body, context, inFunction));
+				RET_ERROR;
+				RET_RETA(last);
 			}
 			return last;
 
@@ -701,7 +702,7 @@ public:
 		if (amount.type == Value::valueType::Number) {
 			if (amount.cNumber.type)
 				return result.failure(RuntimeError("For-Condition is not of type int-Number", node.startPos, node.endPos));
-			long long seconds = (long long)amount.cNumber.value;
+			long long seconds = amount.cNumber.value.longLongVal;
 			InterpretedValue last = InterpretedValue();
 			std::chrono::steady_clock::time_point start = std::chrono::steady_clock::now();
 			while (true) {
@@ -780,9 +781,9 @@ public:
 	RuntimeResult visitOutputNode(OutputNode node, Context& context, bool inFuntion) {
 		RuntimeResult result = RuntimeResult();
 
-		if (node.type == 0) {
+		if (!node.type) {
 			if (node.object == nullptr) {
-				std::cout << "\n";
+				printf("\n");
 				return result.success(InterpretedValue(std::string("newline"), node.startPos, node.endPos));
 			}
 
@@ -791,8 +792,8 @@ public:
 			RET_RETA(valueToPrint);
 
 			if (node.printLine)
-				std::cout << valueToPrint.toString(true) << "\n";
-			else std::cout << valueToPrint.toString(true);
+				printf("%s\n", valueToPrint.toString(true).c_str());
+			else printf("%s", valueToPrint.toString(true).c_str());
 			return result.success(valueToPrint);
 		}
 		else {

@@ -59,5 +59,6 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="Todo.md" />
+    <None Include="bin\Release\x64\Gish.exe" />
   </ItemGroup>
 </Project>

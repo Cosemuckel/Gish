@@ -135,7 +135,10 @@ public:
 class Number : public Object {
 public:
 
-	int64_t value = 0;
+	union {
+		long long longLongVal;
+		double doubleVal; 
+	} value;
 	bool type = false; //False = long, True = bool
 
 	Number(const Number& number) {
@@ -147,97 +150,100 @@ public:
 		this->mClass = Class::Number;
 	}
 	Number(long long l) : Number() {
-		this->value = long long(l);
+		this->value.longLongVal = l;
 		this->type = false;
 	}
 	Number(int l) : Number() {
-		this->value = long long(l);
+		this->value.longLongVal = long long(l);
 		this->type = false;
 	}
 	Number(double d) : Number() {
-		this->value = (int64_t) double(d);
+		this->value.doubleVal = d;
 		this->type = true;
 	}
 
 	Number plus(Number number) {
 		if (!this->type)
 			if (!number.type)
-				return Number((long long)this->value + (long long)number.value);
+				return Number(this->value.longLongVal + number.value.longLongVal);
 			else
-				return Number((long long)this->value + (double)number.value);
+				return Number(this->value.longLongVal + number.value.doubleVal);
 		else
 			if (!number.type)
-				return Number((double)this->value + (long long)number.value);
+				return Number(this->value.doubleVal + number.value.longLongVal);
 			else
-				return Number((double)this->value + (double)number.value);
+				return Number(this->value.doubleVal + number.value.doubleVal);
 	}
 	Number minus(Number number) {
 		if (!this->type)
 			if (!number.type)
-				return Number((long long)this->value - (long long)number.value);
+				return Number(this->value.longLongVal - number.value.longLongVal);
 			else
-				return Number((long long)this->value - (double)number.value);
+				return Number(this->value.longLongVal - number.value.doubleVal);
 		else
 			if (!number.type)
-				return Number((double)this->value - (long long)number.value);
+				return Number(this->value.doubleVal - number.value.longLongVal);
 			else
-				return Number((double)this->value - (double)number.value);
+				return Number(this->value.doubleVal - number.value.doubleVal);
 	}
 	Number times(Number number) {
 		if (!this->type)
 			if (!number.type)
-				return Number((long long)this->value * (long long)number.value);
+				return Number(this->value.longLongVal * number.value.longLongVal);
 			else
-				return Number((long long)this->value * (double)number.value);
+				return Number(this->value.longLongVal * number.value.doubleVal);
 		else
 			if (!number.type)
-				return Number((double)this->value * (long long)number.value);
+				return Number(this->value.doubleVal * number.value.longLongVal);
 			else
-				return Number((double)this->value * (double)number.value);
+				return Number(this->value.doubleVal * number.value.doubleVal);
 	}
 	Number over(Number number) {
 		if (!this->type)
 			if (!number.type)
-				return Number((long long)this->value / (long long)number.value);
+				return Number(this->value.longLongVal / number.value.longLongVal);
 			else
-				return Number((long long)this->value / (double)number.value);
+				return Number(this->value.longLongVal / number.value.doubleVal);
 		else
 			if (!number.type)
-				return Number((double)this->value / (long long)number.value);
+				return Number(this->value.doubleVal / number.value.longLongVal);
 			else
-				return Number((double)this->value / (double)number.value);
+				return Number(this->value.doubleVal / number.value.doubleVal);
 	}
 	Number powered(Number number) {
 		if (!this->type)
 			if (!number.type)
-				return Number(static_cast<long long>(std::pow((long long)this->value, (long long)number.value)));
+				return Number(static_cast<long long>(std::pow(this->value.longLongVal, number.value.longLongVal)));
 			else
-				return Number(std::pow((long long)this->value, (double)number.value));
+				return Number(std::pow(this->value.longLongVal, number.value.doubleVal));
 		else
 			if (!number.type)
-				return Number(std::pow((double)this->value, (long long)number.value));
+				return Number(std::pow(this->value.doubleVal, number.value.longLongVal));
 			else
-				return Number(std::pow((double)this->value, (double)number.value));
+				return Number(std::pow(this->value.doubleVal, number.value.doubleVal));
 	}
 	Number factorial() {
 		if (!this->type) {
 			int r = 1;
-			long long f = (long long)this->value;
+			long long f = this->value.longLongVal;
 			for (int i = 1; i <= f; i++)
 				r *= i;
 			return Number(r);
 		}
 		return Number(1);
 	}
+	Number inverse() {
+		return Number(1).over(*this);
+	}
 
 	bool equals(Number number) {
-		return this->type ? number.type ? (double)this->value == (double)number.value : (double)this->value == (long long)number.value : number.type ? (long long)this->value == (double)number.value : (long long)this->value == (long long)number.value;
+		return this->type ? number.type ? this->value.doubleVal == number.value.doubleVal : this->value.doubleVal == number.value.longLongVal : number.type ? this->value.longLongVal == number.value.doubleVal : this->value.longLongVal == number.value.longLongVal;
 	}
 	bool greaterThan(Number number) {
-		return this->type ? number.type ? (double)this->value > (double)number.value : (double)this->value > (long long)number.value : number.type ? (long long)this->value > (double)number.value : (long long)this->value > (long long)number.value;
+		return this->type ? number.type ? this->value.doubleVal > number.value.doubleVal : this->value.doubleVal > number.value.longLongVal : number.type ? this->value.longLongVal > number.value.doubleVal : this->value.longLongVal > number.value.longLongVal;
 	}
 	bool lessThan(Number number) {
-		return this->type ? number.type ? (double)this->value < (double)number.value : (double)this->value < (long long)number.value : number.type ? (long long)this->value < (double)number.value : (long long)this->value < (long long)number.value;
+		return this->type ? number.type ? this->value.doubleVal < number.value.doubleVal : this->value.doubleVal < number.value.longLongVal : number.type ? this->value.longLongVal < number.value.doubleVal : this->value.longLongVal < number.value.longLongVal;
 	}
 
 
@@ -245,8 +251,8 @@ public:
 		if (*this == null)
 			return "Null";
 		if (this->type)
-			return std::to_string((double)this->value);
-		return std::to_string((long long)this->value);
+			return std::to_string(this->value.doubleVal);
+		return std::to_string(this->value.longLongVal);
 	}
 
 	void clear() {
@@ -354,28 +360,41 @@ public:
 	std::string toString() {
 		switch (this->type)
 		{
-		case valueType::Bool: return this->cBool.toString(); break;
-		case valueType::Number:return this->cNumber.toString(); break;
-		case valueType::String: return '"' + this->cString + '"'; break;
-		case valueType::Array: { std::string s = "[ "; int i = 0; for (Value v : this->cVector) { s += v.toString(); if (i < this->cVector.size() - 1) s += ", "; i++; } return s + " ]"; break;
+		case valueType::Bool: return this->cBool.toString();
+		case valueType::Number:return this->cNumber.toString();
+		case valueType::String: return '"' + this->cString + '"';
+		case valueType::Array: { 
+			std::string s = "[ ";
+			int i = 0; 
+			for (Value v : this->cVector) { 
+				s += v.toString(); 
+				if (i < this->cVector.size() - 1) 
+					s += ", "; 
+				i++;
+			} 
+			return s + " ]";
 		}
-		case valueType::Null: return "Null";
 		default:
-			break;
+			return "Null";
 		}
 	}
 
 	std::string toString(bool) {
 		switch (this->type)
 		{
-		case valueType::Bool: return this->cBool.toString(); break;
-		case valueType::Number:return this->cNumber.toString(); break;
-		case valueType::String: return this->cString; break;
-		case valueType::Array: { std::string s = "[ "; int i = 0; for (Value v : this->cVector) { s += v.toString(); if (i < this->cVector.size() - 1) s += ", "; i++; } return s + " ]"; break;
+		case valueType::Bool: return this->cBool.toString();
+		case valueType::Number:return this->cNumber.toString();
+		case valueType::String: return this->cString;
+		case valueType::Array: { 
+			std::string s = "[ "; 
+			int i = 0; for (Value v : this->cVector) {
+				s += v.toString(); 
+				if (i < this->cVector.size() - 1) 
+					s += ", "; i++; } 
+			return s + " ]"; 
 		}
-		case valueType::Null: return "Null";
 		default:
-			break;
+			return "Null";
 		}
 	}
 

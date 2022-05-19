@@ -1,11 +1,19 @@
 #pragma once
 
+///Position class holding :
+///	Character in file(index)
+///	Column in file(column)
+///	Line in file(line)
+///
+///Static: 
+///	fileName, the name of the file, used for errors
+///	fileCode, the code of the file, also used for errors
 class Position : public Object {
 
 public:
-	int index;
-	int column;
-	int line;
+	int index = 0;
+	int column = 0;
+	int line = 0;
 	static std::string fileName;
 	static std::string fileCode;
 
@@ -24,6 +32,7 @@ public:
 
 	}
 
+	//Increase the counters, based on the current character
 	Position advance(char currentChar) {
 		this->index++;
 		this->column++;

@@ -240,7 +240,7 @@ public:
 
 class UnaryNode : public BaseNode {
 public:
-	Node* nodeOn;
+	Node* nodeOn = nullptr;
 	Token opToken = null;
 
 	UnaryNode(const UnaryNode& node, Allocator allocationTable, bool passOn);
@@ -462,6 +462,7 @@ public:
 		case Class::InterruptionNode: return ((InterruptionNode*)this->nodePtr)->startPos; break;
 		case Class::LoopNode: return ((LoopNode*)this->nodePtr)->startPos; break;
 		}
+		return Position(0, 0, 0);
 	};
 	Position getEndPos() {
 		switch (this->type) {
@@ -489,6 +490,7 @@ public:
 		case Class::InterruptionNode: return ((InterruptionNode*)this->nodePtr)->endPos; break;
 		case Class::LoopNode: return ((LoopNode*)this->nodePtr)->endPos; break;
 		}
+		return Position(0, 0, 0);
 	};
 
 	void clear() {

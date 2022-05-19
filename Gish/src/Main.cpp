@@ -34,8 +34,7 @@ void sleep(unsigned long long int duration) {
 #include "Interpreter.h"
 #include "Gish.hpp"
 
-int main() {
+int main(int argc, char** argv) {
 
 	return GishClient::main();
-
 }
