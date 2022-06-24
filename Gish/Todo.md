@@ -3,8 +3,12 @@
 
 ### max level
 * string division and Multiplication
+* absolute garbage going on with methods over multiple execution processes!!!
 
 ### next goals
+* check function argument types
+* function overloading
+* recursion
 * `if ... do ...` (now only `do ... if ...`)
 * `for ... do ...` (now only `do ... for ...`)
 * xOr
@@ -26,6 +30,7 @@
 * returntypeof function
 ### bug fixes etc.
 * fix division (and maybe others) `int` / `double` mismatch
+* double output precision
 
 ### to do, but later
 * imports

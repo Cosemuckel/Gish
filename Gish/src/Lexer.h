@@ -36,67 +36,6 @@ public:
 
 #include "Tokens.h"
 
-class Token : public Object {
-public:
-	TokenType type = TokenType(null);
-	Value value = Value(null);
-	Position startPos;
-	Position endPos;
-
-	Token(const Token& token) {
-		this->type.clear();
-		this->type = TokenType(token.type);
-		this->value.clear();
-		this->value = Value(token.value);
-		this->startPos = Position(token.startPos);
-		this->endPos = Position(token.endPos);
-	}
-	Token(TokenType tokenType, Value value, Position startPos, Position endPos) {
-		this->type.clear();
-		this->type = TokenType(tokenType);
-		this->value.clear();
-		this->value = Value(value);
-		this->startPos = startPos;
-		this->endPos = endPos;
-		this->mClass = Class::Token;
-	}
-	Token(TokenType tokenType, Value value, Position startPos)
-		: Token(tokenType, value, startPos, startPos) {
-		this->endPos.advance(0);
-	}
-	Token(TokenType tokenType, Value value)
-		: Token(tokenType, value, Position(), Position()) {
-	}
-	Token(TokenType tokenType, Position startPos)
-		: Token(tokenType, null, startPos, Position(startPos)) {
-		this->endPos.advance(0);
-	}
-	Token(TokenType tokenType)
-		: Token(tokenType, null, Position(), Position()) {
-	}
-
-	std::string toString() {
-		if (this->value != null && this->value.type != Value::valueType::Null)
-			return type.toString() + ":\033[36m" + value.toString() + "\033[0m";
-		else return type.toString();
-	}
-
-	bool matches(TokenType tokenType) {
-		return this->type.aClass == tokenType.aClass && this->type.type == tokenType.type;
-	}
-
-	void clear() {
-		this->type.clear();
-		this->value.clear();
-		this->startPos.clear();
-		this->endPos.clear();
-	}
-
-	nullCMP;
-	Token nullEQ;
-	Token nullCon;
-};
-
 
 class LexerResult : public Result {
 
@@ -138,43 +77,6 @@ public:
 	LexerResult nullCon;
 };
 
-class LexingResult : public Object {
-public:
-	Token token = Token(null);
-	Error error = Error(null);
-
-	LexingResult() {
-		this->mClass = Class::LexingResult;
-	}
-
-	Token Register(LexingResult result) {
-		if (result.error != null) {
-			this->error = Error(result.error);
-		}
-		else { 
-			this->token = Token(result.token); 
-		}
-		return result.token;
-	}
-
-	LexingResult success(Token token) {
-		this->token = Token(token);
-		return *this;
-	}
-
-	LexingResult failure(Error error) {
-		this->error = Error(error);
-		return *this;
-	}
-
-	void clear() {
-		token.clear();
-	}
-
-	nullCMP;
-	LexingResult nullEQ;
-	LexingResult nullCon;
-};
 
 class Lexer : public Object {
 public:
