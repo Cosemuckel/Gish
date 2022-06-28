@@ -10,6 +10,8 @@
 #include <thread>
 #include <conio.h>
 
+#include "ttmath.h"
+
 namespace windows {
 #include <Windows.h>
 }

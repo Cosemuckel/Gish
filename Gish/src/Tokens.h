@@ -29,20 +29,20 @@ TokenType TT_GREAT_EQ ("CMP", "GREAT_EQ");
 TokenType TT_SMALL_EQ ("CMP", "SMALL_EQ");
 TokenType TT_NOT      ("CMP", "NOT");
 
-TokenType TT_IS   ("HELP", "IS");
-TokenType TT_THAN ("HELP", "THAN");
-TokenType TT_TO   ("HELP", "TO");
-TokenType TT_BY   ("HELP", "BY");
-TokenType TT_OF   ("HELP", "OF");
-TokenType TT_FROM ("HELP", "FROM");
-TokenType TT_THE  ("HELP", "THE");
-TokenType TT_TYPE ("HELP", "TYPE");
-TokenType TT_WITH ("HELP", "WITH");
-TokenType TT_A    ("HELP", "A");
-TokenType TT_AS   ("HELP", "AS");
-TokenType TT_LONG ("HELP", "LONG");
+// TokenType TT_IS   ("HELP", "IS");
+// TokenType TT_THAN ("HELP", "THAN");
+// TokenType TT_TO   ("HELP", "TO");
+// TokenType TT_BY   ("HELP", "BY");
+// TokenType TT_OF   ("HELP", "OF");
+// TokenType TT_FROM ("HELP", "FROM");
+// TokenType TT_THE  ("HELP", "THE");
+// TokenType TT_TYPE ("HELP", "TYPE");
+// TokenType TT_WITH ("HELP", "WITH");
+// TokenType TT_A    ("HELP", "A");
+// TokenType TT_AS   ("HELP", "AS");
+// TokenType TT_LONG ("HELP", "LONG");
 
-TokenType TT_IDENTIFIER ("NAME", "IDENTIFIER");
+TokenType TT_WORD ("WORD", "WORD");
 
 TokenType TT_KEYWORD_INDEX        ("KEY", "INDEX");
 TokenType TT_KEYWORD_CHARACTER    ("KEY", "CHARACTER");

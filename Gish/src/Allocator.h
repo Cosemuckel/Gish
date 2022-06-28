@@ -12,6 +12,8 @@ public:
 
 	//Adds a allocations to the array of allocations
 	void registerAllocation(void* address) {
+		//If the address is already in the array, return
+
 		//If there has not been an allocation yet
 		if (!this->nAllocations) {
 			this->nAllocations++;
@@ -33,12 +35,35 @@ public:
 		//Frees every allocation in the array
 		for (int i = 0; i < this->nAllocations; i++) {
 			free(allocations[i]);
-		}
-		//Deletes the array
 		free(this->allocations);
 		//Resets the data
 		this->allocations = nullptr;
 		this->nAllocations = 0;
+		}
+		//Deletes the array
 	}
 
 }GlobalAllocator; //Global allocater, cleared after every code execution
+
+//Overload the new operator to use the global allocator
+void* operator new(size_t size) {
+	void* address = malloc(size);
+	GlobalAllocator.registerAllocation(address);
+	return address;
+}
+//Overload the delete operator to use the global allocator
+void operator delete(void* address) {
+	GlobalAllocator.registerAllocation(address);
+	free(address);
+}
+//Overload the new[] operator to use the global allocator
+void* operator new[](size_t size) {
+	void* address = malloc(size);
+	GlobalAllocator.registerAllocation(address);
+	return address;
+}
+//Overload the delete[] operator to use the global allocator
+void operator delete[](void* address) {
+	GlobalAllocator.registerAllocation(address);
+	free(address);
+}

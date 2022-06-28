@@ -13,26 +13,27 @@ namespace GishClient {
 	bool lastInterpreterOutput = false;
 
 	//The context holding smbols
-	Context mainContext = Context();
+//R	Context mainContext = Context();
 
 	//Process the currently loaded code
 	bool execute() {
-		Position::fileCode = currentCode;
-		Position::fileName = currentFileName;
 
 		//Tokenizeds the code
-		LexerResult lexerResult = Lexer(currentCode).lex();
+		LexerResult lexerResult = Lexer(currentCode, currentFileName).lex();
 
 		//Print the output created by the lexer, if there is a error or if wished
-		if (lexingOutput || lexerResult.error != null)
+		if (lexingOutput || lexerResult.error != nullptr)
 			std::cout << "\n" << lexerResult.toString() << "\n";
 		//End execution if there has been an error
-		if (lexerResult.error != null) {
+		if (lexerResult.error != nullptr) {
 			//Clear all possible allocated memory, etc
 			lexerResult.clear();
 			//Return an error
 			return false;
 		}
+
+//R		
+		/*
 
 		//Create an AST from the tokens
 		ParserResult parserResult = Parser(lexerResult.tokens).parse();
@@ -62,6 +63,7 @@ namespace GishClient {
 			return false;
 		}
 
+		
 		//Print the last outputed value from the interpreter
 		if (lastInterpreterOutput)
 			std::cout << "\n" << runtimeResult.toString(true) << "\n";
@@ -70,6 +72,7 @@ namespace GishClient {
 		lexerResult.clear();
 		parserResult.clear();
 		runtimeResult.clear();
+		*/
 		return true;
 	}
 
@@ -173,6 +176,9 @@ namespace GishClient {
 		printf("Press any key to continue...\n");
 		//Wait for user to terminate
 		waitInput();
+		
+		return true;
+
 	}
 
 	const char* welcome = "Gish opened, choose what you want to do:\n 1: run file, return to this screen\n 2: run file, delete all data and return to this screen\n 3: run file and then continue in terminal mode\n 4: start terminal mode\n 5: reset all data\n 6: open config\nor type 'exit' to exit program\n\n";
@@ -196,7 +202,7 @@ namespace GishClient {
 			else if (option == "2") {
 				system("cls");
 				runFromFile();
-				mainContext.clear();
+//R				mainContext.clear();
 				continue;
 			}
 			//Runs from file, keeping data for further code executions, directly starts prompt mode
@@ -215,8 +221,8 @@ namespace GishClient {
 			}
 			//Clears all data
 			else if (option == "5") {
-				mainContext.clear();
-				Parser::functions.clear();
+//R				mainContext.clear();
+//R				// Parser::functions.clear();
 				continue;
 			}
 			//Opens the configurations
@@ -263,8 +269,8 @@ namespace GishClient {
 
 						//List all Variables
 						printf("  -Variables:\n");
-						auto it = mainContext.symbolTable.symbols.begin();
-						for (size_t i = 0; i < mainContext.symbolTable.symbols.size(); i++) {
+//R						auto it = mainContext.symbolTable.symbols.begin();
+/*						for (size_t i = 0; i < mainContext.symbolTable.symbols.size(); i++) {
 							printf("   %s %s: %s", it->second.Name().c_str(), it->first.c_str(), it->second.toString().c_str());
 							std::advance(it, 1);
 						}
@@ -276,13 +282,13 @@ namespace GishClient {
 						printf("  -Functions:\n");
 						auto it2 = mainContext.functionTable.symbols.begin();
 						for (size_t i = 0; i < mainContext.functionTable.symbols.size(); i++) {
-							printf("   %s %s: %s", Value::Name(it2->second.returnType).c_str(), it2->first.c_str(), it2->second.argumentString().c_str());
+							printf("   %s %s: %s", Value::typeName(it2->second.returnType).c_str(), it2->first.c_str(), it2->second.argumentString().c_str());
 							std::advance(it2, 1);
 						}
 						//Print NaN to show there are no defined Methods
 						if (mainContext.functionTable.symbols.size() == 0)
 							printf("   NaN\n");
-
+*/
 						//Wait for user to exit
 						waitInput();
 					}
