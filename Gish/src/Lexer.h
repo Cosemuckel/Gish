@@ -33,18 +33,20 @@ public:
 
 #include "Tokens.h"
 
+#define TD_OPERATOR 0
+
 class Token {
 
 public:
 
 	TokenType* tokenType = nullptr;
-	Position* startPos = nullptr;
-	Position* endPos = nullptr;
-	Value* value = nullptr;
+	Position startPos;
+	Position endPos;
+	int value = -1;
 
 	std::string toString() {
-		if (this->value != nullptr && this->value->type != Value::Type::Null)
-			return tokenType->toString() + ":\033[36m" + value->toString() + "\033[0m";
+		if (this->value != -1 && this->getValue()->type != Value::Type::Null)
+			return tokenType->toString() + ":\033[36m" + this->getValue()->toString() + "\033[0m";
 		else return tokenType->toString();
 	}
 
@@ -56,22 +58,30 @@ public:
 		this->value = token.value;
 	}
 	
-	Token(TokenType* tokenType, Position* startPos, Position* endPos, Value* value) {
+	Token(TokenType* tokenType, Position startPos, Position endPos, int value) {
 		this->tokenType = tokenType;
 		this->startPos = startPos;
 		this->endPos = endPos;
 		this->value = value;
 	}
 
-	Token(TokenType* tokenType, Position* startPos, Value* value) {
+	Token(TokenType* tokenType, Position startPos, int value) {
 		this->tokenType = tokenType;
 		this->startPos = startPos;
 		this->value = value;
 	}
 
-	Token(TokenType* tokenType, Position* startPos) {
+	Token(TokenType* tokenType, Position startPos) {
 		this->tokenType = tokenType;
 		this->startPos = startPos;
+	}
+
+	Token() {
+		
+	}
+
+	Value* getValue() {
+		return &GishClient::valueList[this->value];
 	}
 
 	bool matches(const TokenType& tokenType) {
@@ -81,7 +91,7 @@ public:
 	bool matchesWord(const std::string& word) {
 		if (!this->matches(TT_WORD))
 			return false;
-		return this->value->toString() == word;
+		return this->getValue()->toString() == word;
 	}
 
 };
@@ -90,21 +100,21 @@ class LexerResult : public Result {
 
 public:
 
-	std::vector<Token> tokens;
+	std::vector<Token>* tokens;
 
-	LexerResult(std::vector<Token> tokens, Error* error) {
-		this->tokens = std::vector<Token>(tokens);
+	LexerResult(std::vector<Token>* tokens, Error* error) {
+		this->tokens = tokens;
 		this->error = error;
 	}
 
 	std::string toString() {
 		if (this->error == nullptr) {
 			std::string o = "[";
-			for (int i = 0; i < tokens.size(); i++) {
+			for (int i = 0; i < tokens->size(); i++) {
 				if (i == 0)
 					o += " ";
-				o += tokens[i].toString();
-				if (i < tokens.size() - 1)
+				o += (*tokens)[i].toString();
+				if (i < tokens->size() - 1)
 					o += ", ";
 				else o += " ";
 			}
@@ -114,15 +124,11 @@ public:
 		else return this->error->toString();
 	}
 
-	void clear() {
-		tokens.clear();
-	}
-
 };
 
 class LexingResult {
 public:
-	Token* token = nullptr;
+	Token token;
 	Error* error = nullptr;
 
 	LexingResult() {}
@@ -132,11 +138,11 @@ public:
 			this->error = result.error;
 		else
 			this->token = result.token;
-		return *result.token;
+		return result.token;
 	
 	}
 
-	LexingResult success(Token* token) {
+	LexingResult success(Token token) {
 		this->token = token;
 		return *this;
 	}
@@ -155,10 +161,12 @@ public:
 	Position position;
 	char currentChar = 1;
 	char lastChar = 1;
+	std::vector<Token>* tokens;
 
-	Lexer(std::string& code, std::string& name) {
+	Lexer(std::string& code, std::string& name, std::vector<Token>* tokens) {
 		this->code = code;
 		this->position = Position(0, 0, 1, new std::string(code), new std::string(name));
+		this->tokens = tokens;
 	}
 
 	void advance() {
@@ -170,30 +178,29 @@ public:
 	}
 
 	LexerResult lex() {
-		std::vector<Token> result = std::vector<Token>();
 		this->advance();
 		while (this->currentChar != 2) {
 			if (LEXING::spaceCharacters.find(this->currentChar) != std::string::npos) {
 				this->advance();
 			}
 			else if (LEXING::digits.find(this->currentChar) != std::string::npos) {
-				result.push_back(this->makeNumberLiteral());
+				tokens->push_back(this->makeNumberLiteral());
 			}
 			else if (this->currentChar == '"') {
 				LexingResult r;
 				Token t = r.Register(this->makeStringLiteral());
 				if (r.error != nullptr)
-					return LexerResult({}, r.error);
-				result.push_back(t);
+					return LexerResult(tokens, r.error);
+				tokens->push_back(t);
 			}
 			else if (LEXING::letters.find(this->currentChar) != std::string::npos) {
 				Token token = Token(this->makeIdentifier());
-				result.push_back(token);
+				tokens->push_back(token);
 			}			
 
-			else if (this->currentChar == '+') { result.push_back(Token(&TT_PLUS, this->position.copy())); this->advance(); }
-			else if (this->currentChar == '-') { result.push_back(Token(&TT_MINUS, this->position.copy())); this->advance(); }
-			else if (this->currentChar == '*') { result.push_back(Token(&TT_MULT, this->position.copy())); this->advance(); }
+			else if (this->currentChar == '+') { tokens->push_back(Token(&TT_PLUS, this->position)); this->advance(); }
+			else if (this->currentChar == '-') { tokens->push_back(Token(&TT_MINUS, this->position)); this->advance(); }
+			else if (this->currentChar == '*') { tokens->push_back(Token(&TT_MULT, this->position)); this->advance(); }
 			else if (this->currentChar == '/') { 
 				this->advance();
 				if (this->currentChar == '/') {
@@ -204,31 +211,31 @@ public:
 				}
 				else this->position.character -= 2;
 				this->advance();
-				result.push_back(Token(&TT_DIV, this->position.copy())); this->advance(); 
+				tokens->push_back(Token(&TT_DIV, this->position)); this->advance(); 
 			}
-			else if (this->currentChar == '!') { result.push_back(Token(&TT_FAC, this->position.copy())); this->advance(); }
-			else if (this->currentChar == '^') { result.push_back(Token(&TT_POW, this->position.copy())); this->advance(); }
+			else if (this->currentChar == '!') { tokens->push_back(Token(&TT_FAC, this->position)); this->advance(); }
+			else if (this->currentChar == '^') { tokens->push_back(Token(&TT_POW, this->position)); this->advance(); }
 
-			else if (this->currentChar == '(') { result.push_back(Token(&TT_L_PAREN, this->position.copy())); this->advance(); }
-			else if (this->currentChar == ')') { result.push_back(Token(&TT_R_PAREN, this->position.copy())); this->advance(); }
-			else if (this->currentChar == '[') { result.push_back(Token(&TT_L_SQUARE_PAREN, this->position.copy())); this->advance(); }
-			else if (this->currentChar == '[') { result.push_back(Token(&TT_L_SQUARE_PAREN, this->position.copy())); this->advance(); }
-			else if (this->currentChar == ']') { result.push_back(Token(&TT_R_SQUARE_PAREN, this->position.copy())); this->advance(); }
-			else if (this->currentChar == '{') { result.push_back(Token(&TT_L_CURLY_PAREN, this->position.copy())); this->advance(); }
-			else if (this->currentChar == '}') { result.push_back(Token(&TT_R_CURLY_PAREN, this->position.copy())); this->advance(); }
+			else if (this->currentChar == '(') { tokens->push_back(Token(&TT_L_PAREN, this->position)); this->advance(); }
+			else if (this->currentChar == ')') { tokens->push_back(Token(&TT_R_PAREN, this->position)); this->advance(); }
+			else if (this->currentChar == '[') { tokens->push_back(Token(&TT_L_SQUARE_PAREN, this->position)); this->advance(); }
+			else if (this->currentChar == '[') { tokens->push_back(Token(&TT_L_SQUARE_PAREN, this->position)); this->advance(); }
+			else if (this->currentChar == ']') { tokens->push_back(Token(&TT_R_SQUARE_PAREN, this->position)); this->advance(); }
+			else if (this->currentChar == '{') { tokens->push_back(Token(&TT_L_CURLY_PAREN, this->position)); this->advance(); }
+			else if (this->currentChar == '}') { tokens->push_back(Token(&TT_R_CURLY_PAREN, this->position)); this->advance(); }
 
-			else if (this->currentChar == ',') { result.push_back(Token(&TT_COMMA, this->position.copy())); this->advance(); }
-			else if (this->currentChar == ':') { result.push_back(Token(&TT_COLON, this->position.copy())); this->advance(); }
-			else if (this->currentChar == ';') { result.push_back(Token(&TT_SEMICOLON, this->position.copy())); this->advance(); }
+			else if (this->currentChar == ',') { tokens->push_back(Token(&TT_COMMA, this->position)); this->advance(); }
+			else if (this->currentChar == ':') { tokens->push_back(Token(&TT_COLON, this->position)); this->advance(); }
+			else if (this->currentChar == ';') { tokens->push_back(Token(&TT_SEMICOLON, this->position)); this->advance(); }
 
 			else {
-				return LexerResult({}, new IllegalCharError(std::string("'") + this->currentChar + "'", position.copy(), position.copy()->advance(this->currentChar)));
+				return LexerResult(tokens, new IllegalCharError(std::string("'") + this->currentChar + "'", this->position.copy(), this->position.copy()->advance(this->currentChar)));
 			}
 
 		}
 
-		result.push_back(Token(&TT_EOF, this->position.copy()));
-		return LexerResult(result, nullptr);
+		tokens->push_back(Token(&TT_EOF, this->position));
+		return LexerResult(tokens, nullptr);
 
 	}
 
@@ -247,8 +254,8 @@ public:
 		else if (string == "factorial") tokenType = &TT_FAC;
 		else if (string == "equals")    tokenType = &TT_EQUALS;
 
-		else if (string == "true")  return Token(&TT_BOOLEAN, startPos.copy(), this->position.copy(), new Value(Bool(true)));
-		else if (string == "false") return Token(&TT_BOOLEAN, startPos.copy(), this->position.copy(), new Value(Bool(false)));
+		else if (string == "true")  return Token(&TT_BOOLEAN, startPos, this->position, -Value(Bool(true)));
+		else if (string == "false") return Token(&TT_BOOLEAN, startPos, this->position, -Value(Bool(false)));
 
 		else if (string == "add")      tokenType = &TT_ADD;
 		else if (string == "subtract") tokenType = &TT_SUB;
@@ -315,8 +322,8 @@ public:
 		
 		else tokenType = &TT_WORD;
 		if (tokenType->Class != TT_WORD.Class)
-			return Token(tokenType, startPos.copy(), this->position.copy(), new Value());
-		return Token(tokenType, startPos.copy(), this->position.copy(), new Value(string));
+			return Token(tokenType, startPos, this->position, -Value());
+		return Token(tokenType, startPos, this->position, -Value(string));
 
 	}
 
@@ -342,7 +349,7 @@ public:
 				case '0': string += ('\0'); break;
 				case '\'': string += ('\''); break;
 				default: 
-					return result.failure(new IllegalCharError(std::string("Invalid escape Character \033[31m'") + this->currentChar + "'\033[0m", this->position.copy(), position.copy()->advance(0)));
+					return result.failure(new IllegalCharError(std::string("Invalid escape Character \033[31m'") + this->currentChar + "'\033[0m", this->position.copy(), this->position.copy()->advance(0)));
 				}
 			}
 			else string += this->currentChar;
@@ -350,7 +357,7 @@ public:
 		}
 		this->advance();
 
-		return result.success(new Token(&TT_STRING, startPos.copy(), this->position.copy(), new Value(string)));
+		return result.success(Token(&TT_STRING, startPos, this->position, -Value(string)));
 	}
 
 	Token makeNumberLiteral() {
@@ -371,8 +378,8 @@ public:
 		}
 
 		if (!dotCount)
-			return Token(&TT_INT, startPos.copy(), this->position.copy(), new Value(Number(std::stoll(numString))));
-		// return Token(&TT_DOUBLE, startPos.copy(), this->position.copy(), new Value(Number(std::stod(numString))));
+			return Token(&TT_INT, startPos, this->position, -Value(Number(std::stoll(numString))));
+		// return Token(&TT_DOUBLE, startPos.copy(), this->position, new Value(Number(std::stod(numString))));
 	}
 
 };

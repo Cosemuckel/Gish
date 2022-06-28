@@ -39,6 +39,12 @@ public:
 		return this;
 	}
 
+	Position advanced(char currentChar) {
+		Position p(*this);
+		p.advance(currentChar);
+		return p;	
+	}
+
 	Position* copy() {
 		return new Position(*this);
 	}

@@ -12,6 +12,11 @@ namespace GishClient {
 	bool interpreterOutput = false;
 	bool lastInterpreterOutput = false;
 
+	//Here for export reasons
+	std::vector<Value> valueList;
+	std::vector<Token> tokenList;
+	std::vector<NodeWrapper> nodeList;
+
 	//The context holding smbols
 //R	Context mainContext = Context();
 
@@ -19,15 +24,13 @@ namespace GishClient {
 	bool execute() {
 
 		//Tokenizeds the code
-		LexerResult lexerResult = Lexer(currentCode, currentFileName).lex();
+		LexerResult lexerResult = Lexer(currentCode, currentFileName, &tokenList).lex();
 
 		//Print the output created by the lexer, if there is a error or if wished
 		if (lexingOutput || lexerResult.error != nullptr)
 			std::cout << "\n" << lexerResult.toString() << "\n";
 		//End execution if there has been an error
 		if (lexerResult.error != nullptr) {
-			//Clear all possible allocated memory, etc
-			lexerResult.clear();
 			//Return an error
 			return false;
 		}

@@ -100,7 +100,13 @@ public:
 
 };
 
-std::string join(std::vector<Value>& v, const char* delimiter) {
+int operator- (Value&& value) {
+	GishClient::valueList.push_back(value);
+	return GishClient::valueList.size() - 1;
+}
+
+template <typename T>
+std::string join(std::vector<T>& v, const char* delimiter) {
 	std::string result = "";
 	for (unsigned int i = 0; i < v.size(); i++) {
 		if (i <= v.size() - 2)
