@@ -33,8 +33,6 @@ public:
 
 #include "Tokens.h"
 
-#define TD_OPERATOR 0
-
 class Token {
 
 public:
@@ -42,6 +40,8 @@ public:
 	TokenType* tokenType = nullptr;
 	Position startPos;
 	Position endPos;
+	std::vector<Token>* arrayIn = &GishClient::tokenList;
+	std::vector<Value>* valuesIn = &GishClient::valueList;
 	int value = -1;
 
 	std::string toString() {
@@ -81,7 +81,9 @@ public:
 	}
 
 	Value* getValue() {
-		return &GishClient::valueList[this->value];
+		if (this->value == -1)
+			return nullptr;
+		return &(*valuesIn)[this->value];
 	}
 
 	bool matches(const TokenType& tokenType) {
@@ -94,64 +96,6 @@ public:
 		return this->getValue()->toString() == word;
 	}
 
-};
-
-class LexerResult : public Result {
-
-public:
-
-	std::vector<Token>* tokens;
-
-	LexerResult(std::vector<Token>* tokens, Error* error) {
-		this->tokens = tokens;
-		this->error = error;
-	}
-
-	std::string toString() {
-		if (this->error == nullptr) {
-			std::string o = "[";
-			for (int i = 0; i < tokens->size(); i++) {
-				if (i == 0)
-					o += " ";
-				o += (*tokens)[i].toString();
-				if (i < tokens->size() - 1)
-					o += ", ";
-				else o += " ";
-			}
-			o += "]";
-			return std::string(o);
-		}
-		else return this->error->toString();
-	}
-
-};
-
-class LexingResult {
-public:
-	Token token;
-	Error* error = nullptr;
-
-	LexingResult() {}
-
-	Token Register(LexingResult result) {
-		if (result.error != nullptr)
-			this->error = result.error;
-		else
-			this->token = result.token;
-		return result.token;
-	
-	}
-
-	LexingResult success(Token token) {
-		this->token = token;
-		return *this;
-	}
-
-	LexingResult failure(Error* error) {
-		this->error = error;
-		return *this;
-	}
-	
 };
 
 class Lexer {
@@ -177,7 +121,7 @@ public:
 		else this->currentChar = 2;
 	}
 
-	LexerResult lex() {
+	std::vector<Token>* lex() {
 		this->advance();
 		while (this->currentChar != 2) {
 			if (LEXING::spaceCharacters.find(this->currentChar) != std::string::npos) {
@@ -187,10 +131,7 @@ public:
 				tokens->push_back(this->makeNumberLiteral());
 			}
 			else if (this->currentChar == '"') {
-				LexingResult r;
-				Token t = r.Register(this->makeStringLiteral());
-				if (r.error != nullptr)
-					return LexerResult(tokens, r.error);
+				Token t = (this->makeStringLiteral());	// Will return a token with the string literal value, or throw an error if it fails.
 				tokens->push_back(t);
 			}
 			else if (LEXING::letters.find(this->currentChar) != std::string::npos) {
@@ -229,13 +170,13 @@ public:
 			else if (this->currentChar == ';') { tokens->push_back(Token(&TT_SEMICOLON, this->position)); this->advance(); }
 
 			else {
-				return LexerResult(tokens, new IllegalCharError(std::string("'") + this->currentChar + "'", this->position.copy(), this->position.copy()->advance(this->currentChar)));
+				throw IllegalCharError(std::string("'") + this->currentChar + "'", this->position.copy(), this->position.copy()->advance(this->currentChar));
 			}
 
 		}
 
 		tokens->push_back(Token(&TT_EOF, this->position));
-		return LexerResult(tokens, nullptr);
+		return tokens;
 
 	}
 
@@ -254,8 +195,8 @@ public:
 		else if (string == "factorial") tokenType = &TT_FAC;
 		else if (string == "equals")    tokenType = &TT_EQUALS;
 
-		else if (string == "true")  return Token(&TT_BOOLEAN, startPos, this->position, -Value(Bool(true)));
-		else if (string == "false") return Token(&TT_BOOLEAN, startPos, this->position, -Value(Bool(false)));
+		else if (string == "true")  return Token(&TT_BOOLEAN, startPos, this->position, +Value(Bool(true)));
+		else if (string == "false") return Token(&TT_BOOLEAN, startPos, this->position, +Value(Bool(false)));
 
 		else if (string == "add")      tokenType = &TT_ADD;
 		else if (string == "subtract") tokenType = &TT_SUB;
@@ -322,20 +263,19 @@ public:
 		
 		else tokenType = &TT_WORD;
 		if (tokenType->Class != TT_WORD.Class)
-			return Token(tokenType, startPos, this->position, -Value());
-		return Token(tokenType, startPos, this->position, -Value(string));
+			return Token(tokenType, startPos, this->position, +Value());
+		return Token(tokenType, startPos, this->position, +Value(string));
 
 	}
 
-	LexingResult makeStringLiteral() {
+	Token makeStringLiteral() {
 		std::string string;
 		Position startPos = this->position;
 		this->advance();
-		LexingResult result;
 
 		while (this->currentChar != '"') {
 			if (this->currentChar == 2)
-				return result.failure(new InvalidSyntaxError("Unexpected end of string!", this->position.copy(), this->position.copy()->advance(0)));
+				throw InvalidSyntaxError("Unexpected end of string!", this->position.copy(), this->position.copy()->advance(0));
 			if (this->currentChar == '\\') {
 				this->advance();
 				switch (this->currentChar) {
@@ -349,7 +289,7 @@ public:
 				case '0': string += ('\0'); break;
 				case '\'': string += ('\''); break;
 				default: 
-					return result.failure(new IllegalCharError(std::string("Invalid escape Character \033[31m'") + this->currentChar + "'\033[0m", this->position.copy(), this->position.copy()->advance(0)));
+					throw IllegalCharError(std::string("Invalid escape Character \033[31m'") + this->currentChar + "'\033[0m", this->position.copy(), this->position.copy()->advance(0));
 				}
 			}
 			else string += this->currentChar;
@@ -357,7 +297,7 @@ public:
 		}
 		this->advance();
 
-		return result.success(Token(&TT_STRING, startPos, this->position, -Value(string)));
+		return Token(&TT_STRING, startPos, this->position, +Value(string));
 	}
 
 	Token makeNumberLiteral() {
@@ -378,8 +318,8 @@ public:
 		}
 
 		if (!dotCount)
-			return Token(&TT_INT, startPos, this->position, -Value(Number(std::stoll(numString))));
-		// return Token(&TT_DOUBLE, startPos.copy(), this->position, new Value(Number(std::stod(numString))));
+			return Token(&TT_INT, startPos, this->position, +Value(Number(std::stoll(numString))));
+//F Bad precision		// return Token(&TT_DOUBLE, startPos.copy(), this->position, new Value(Number(std::stod(numString))));
 	}
 
 };

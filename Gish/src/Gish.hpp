@@ -23,17 +23,17 @@ namespace GishClient {
 	//Process the currently loaded code
 	bool execute() {
 
-		//Tokenizeds the code
-		LexerResult lexerResult = Lexer(currentCode, currentFileName, &tokenList).lex();
-
-		//Print the output created by the lexer, if there is a error or if wished
-		if (lexingOutput || lexerResult.error != nullptr)
-			std::cout << "\n" << lexerResult.toString() << "\n";
-		//End execution if there has been an error
-		if (lexerResult.error != nullptr) {
-			//Return an error
+		//Tokenizes the code
+		try {
+			Lexer(currentCode, currentFileName, &tokenList).lex();
+		} catch (Error e) {
+			std::cout << e.toString() << std::endl;
 			return false;
 		}
+
+		//Print the output created by the lexer, if there is a error or if wished
+		if (lexingOutput)
+			std::cout << "\n" << ( "[ " + join(tokenList, ", ") + " ]" ) << "\n";
 
 //R		
 		/*

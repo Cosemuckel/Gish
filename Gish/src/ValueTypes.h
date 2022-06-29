@@ -99,8 +99,7 @@ public:
 	}
 
 };
-
-int operator- (Value&& value) {
+int operator+ (Value&& value) {
 	GishClient::valueList.push_back(value);
 	return GishClient::valueList.size() - 1;
 }
