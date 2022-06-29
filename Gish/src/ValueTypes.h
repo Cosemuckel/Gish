@@ -12,9 +12,6 @@ public:
 typedef ttmath::Big<32, 95> float128;
 typedef ttmath::Int<256> int256;
 
-class Value;
-std::string join(std::vector<Value>& v, const char* delimiter);
-
 class Number {
 public:
 	Number(int256 n) : value(n) {}
@@ -99,19 +96,4 @@ public:
 	}
 
 };
-int operator+ (Value&& value) {
-	GishClient::valueList.push_back(value);
-	return GishClient::valueList.size() - 1;
-}
-
-template <typename T>
-std::string join(std::vector<T>& v, const char* delimiter) {
-	std::string result = "";
-	for (unsigned int i = 0; i < v.size(); i++) {
-		if (i <= v.size() - 2)
-			result += v[i].toString() + delimiter;
-		else
-			result += v[i].toString();
-	}
-	return result;
-}
+int operator+ (Value&& value);

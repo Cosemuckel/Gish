@@ -82,10 +82,10 @@ public:
 			std::getline(iss, line);
 		}
 		result += line + "\n";
-		for (int i = 0; i < positionStart->column; i++) {
+		for (int i = 0; i < positionStart->column - 1; i++) {
 			result += " ";
 		}
-		for (int i = positionStart->character; i < positionEnd->character; i++) {
+		for (int i = positionStart->character - 1; i < positionEnd->character - 1; i++) {
 			result += "^";
 		}
 		result += "\n";

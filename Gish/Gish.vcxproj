@@ -105,6 +105,7 @@
     <ClInclude Include="src\Lexer.h" />
     <ClInclude Include="src\Nodes.h" />
     <ClInclude Include="src\Parser.h" />
+    <ClInclude Include="src\PostDefines.h" />
     <ClInclude Include="src\Tokens.h" />
     <ClInclude Include="src\ValueTypes.h" />
   </ItemGroup>

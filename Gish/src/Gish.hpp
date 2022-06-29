@@ -7,75 +7,51 @@ namespace GishClient {
 	std::string currentFileName;
 
 	//Should the outputs of the proccesses should be printed to the stdout(Read docs: config)
-	bool lexingOutput = false;
-	bool parsingOutput = false;
+	bool lexingOutput = true;
+	bool parsingOutput = true;
 	bool interpreterOutput = false;
 	bool lastInterpreterOutput = false;
 
-	//Here for export reasons
 	std::vector<Value> valueList;
 	std::vector<Token> tokenList;
-	std::vector<NodeWrapper> nodeList;
-
-	//The context holding smbols
-//R	Context mainContext = Context();
+	std::vector<NodeWrapper> wrappedNodeList;
 
 	//Process the currently loaded code
 	bool execute() {
 
 		//Tokenizes the code
 		try {
-			Lexer(currentCode, currentFileName, &tokenList).lex();
+			Lexer(&currentCode, &currentFileName, &tokenList).lex();
 		} catch (Error e) {
 			std::cout << e.toString() << std::endl;
 			return false;
 		}
 
-		//Print the output created by the lexer, if there is a error or if wished
+		//Print the output created by the lexer
 		if (lexingOutput)
 			std::cout << "\n" << ( "[ " + join(tokenList, ", ") + " ]" ) << "\n";
 
-//R		
-		/*
-
-		//Create an AST from the tokens
-		ParserResult parserResult = Parser(lexerResult.tokens).parse();
-
-		//Print the output created by the parser, if there has been an error, or if whished
-		if (parsingOutput || parserResult.error != null)
-			std::cout << "\n" << parserResult.toString() << "\n";
-		//End execution if there has been an error
-		if (parserResult.error != null) {
-			//Clear all possible allocated memory, etc
-			parserResult.clear();
-			//Return an error
-			return false;
+		//Print all tokens including their positions
+		if (parsingOutput) {
+			std::cout << "\n";
+			for (auto token : tokenList) {
+				std::cout << token.toString() << " from " << token.startPos.toString() << " to " << token.endPos.toString() << "\n";
+			}
 		}
 
-		//Execute the generated argumentString
-		RuntimeResult runtimeResult = Interpreter().run(&parserResult.node, mainContext);
-
-		//Print the output created by the interpreter, if there has been an error, or if whished
-		if (interpreterOutput || runtimeResult.error != null)
-			std::cout << "\n" << runtimeResult.toString() << "\n";
-	 	//End execution if there has been an error
-		if (runtimeResult.error != null) {
-			//Clear all possible allocated memory, etc
-			runtimeResult.clear();
-			//return an error
+		NodeWrapper* parserResult;
+		//Parse the tokens
+		try {
+			parserResult = Parser(&tokenList, &wrappedNodeList).parse();
+		} catch (Error e) {
+			std::cout << e.toString() << std::endl;
 			return false;
 		}
-
 		
-		//Print the last outputed value from the interpreter
-		if (lastInterpreterOutput)
-			std::cout << "\n" << runtimeResult.toString(true) << "\n";
-
-		//Clear all data (except symbols, etc...)
-		lexerResult.clear();
-		parserResult.clear();
-		runtimeResult.clear();
-		*/
+		//Print the output created by the parser
+		if (parsingOutput)
+			std::cout << "\n" << ( parserResult->toString() ) << "\n";
+		
 		return true;
 	}
 
@@ -88,6 +64,13 @@ namespace GishClient {
 		stdcinAllocator.clearAllAllocations();
 		//Clear all allocated nodes, etc.
 		GlobalAllocator.clearAllAllocations();
+		
+		//Clear the token list
+		tokenList.clear();
+		//Clear the node list
+		wrappedNodeList.clear();
+		//Clear the value list
+		valueList.clear();
 
 		return true;
 

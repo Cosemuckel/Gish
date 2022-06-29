@@ -189,7 +189,7 @@ NodeWrapper* BinaryNode::getRight() {
 	return this->right;
 }
 std::string BinaryNode::toString() {
-	return "( " + this->left->toString() + " " + this->operatorToken->toString() + " " + this->right->toString() + " )";
+	return "B( " + this->left->toString() + " " + this->operatorToken->toString() + " " + this->right->toString() + " )B";
 }
 
 //--------------------------
@@ -212,7 +212,7 @@ NodeWrapper* UnaryNode::getRight() {
 	return this->right;
 }
 std::string UnaryNode::toString() {
-	return "( " + this->operatorToken->toString() + " " + this->right->toString() + " )";
+	return "U( " + this->operatorToken->toString() + " " + this->right->toString() + " )U";
 }
 
 //--------------------------
@@ -227,7 +227,7 @@ std::vector<NodeWrapper*>* ListNode::getNodes() {
 	return this->nodes;
 }
 std::string ListNode::toString() {
-	return "[ " + join(*this->nodes, ", ") + " ]";
+	return "[ " + joinPointer(*this->nodes, ", ") + " ]";
 }
 
 

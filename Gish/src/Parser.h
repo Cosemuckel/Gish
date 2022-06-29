@@ -25,25 +25,32 @@ public:
 		return &tokens->at(currenToken + 1);
 	}
 	
+
 public:
 
 	Parser(std::vector<Token>* tokens, std::vector<NodeWrapper>* nodes) {
 		this->tokens = tokens;
 		this->nodes = nodes;
+		this->advance();
 	}
 
 	Token* advance() {
 		this->currenToken++;
-		return &tokens->at(currenToken);
+		if (this->currenToken < tokens->size()) {
+			return &tokens->at(this->currenToken);
+		}
 	}
 
-	void Parse() {
-		
+	NodeWrapper* parse() {
+		NodeWrapper* result = expression();
+		if (!this->getCurrentToken()->matches(TT_EOF)) {
+			throw InvalidSyntaxError("Expected operator", &this->getCurrentToken()->startPos, &this->getCurrentToken()->endPos);
+		}
+		return result;
 	}
 		
 	NodeWrapper* expression() {
-		//Return a binary operation between two factors
-		return binaryOperation(term, term, { &TT_PLUS, &TT_MINUS });
+		return binaryOperation(&Parser::term, &Parser::term, { &TT_PLUS, &TT_MINUS });
 	}
 	
 	NodeWrapper* term() {
@@ -51,12 +58,11 @@ public:
 		if (token->matches(TT_PLUS) || token->matches(TT_MINUS)) {
 			advance();
 			NodeWrapper* node = term();			
-			NodeWrapper unaryNode = new UnaryNode(token, node);
+			NodeWrapper unaryNode = GlobalAllocator.allocate(UnaryNode(token, node));
 			nodes->push_back(unaryNode);
 			return &nodes->back();			
 		}
-		//Return a binary operation between two factors
-		return binaryOperation(factor, factor, { &TT_MULT, &TT_DIV });
+		return binaryOperation(&Parser::factor, &Parser::factor, { &TT_MULT, &TT_DIV });
 	}
 	
 
@@ -64,33 +70,35 @@ public:
 		Token* token = getCurrentToken();
 		if ( token->matches(TT_INT) || token->matches(TT_DOUBLE) || token->matches(TT_STRING) || token->matches(TT_BOOLEAN) ) {
 			this->advance();		
-			NodeWrapper valueNode = new ValueNode(token);			
+			NodeWrapper valueNode = GlobalAllocator.allocate(ValueNode(token));
 			nodes->push_back(valueNode);
 			return &nodes->back();
 		}
+		// Throw an error because no matching token has been found
+		throw InvalidSyntaxError("Expected value", &token->startPos, &token->endPos);
 	}
 
 
 	//Binary opeation taking pointers to left and right node creation functions, and a list of tokens to match
-	NodeWrapper* binaryOperation(NodeWrapper* (*leftNodeCreationFunction)(), NodeWrapper* (*rightNodeCreationFunction)(), std::vector<TokenType*>&& tokensToMatch) {
-		NodeWrapper* leftNode = leftNodeCreationFunction(); //Points to element in the vector of nodes
+	NodeWrapper* binaryOperation(NodeWrapper* (Parser::*leftNodeCreationFunction)(), NodeWrapper* (Parser::*rightNodeCreationFunction)(), std::vector<TokenType*>&& tokensToMatch) {
+		NodeWrapper* leftNode = (this->*leftNodeCreationFunction)(); //Points to element in the vector of nodes
 
 		//Continue to binary chain until no more tokens to match		
 		while (isInVector(getCurrentToken()->tokenType, tokensToMatch)) {
 			Token* operatorToken = getCurrentToken(); //Points to element in the vector of tokens
 			
+			//Go to next token
+			advance();
+
 			//Create right node
-			NodeWrapper* rightNode = rightNodeCreationFunction(); //Points to element in the vector of nodes
+			NodeWrapper* rightNode = (this->*rightNodeCreationFunction)(); //Points to element in the vector of nodes
 			
 			//Create binary node
-			NodeWrapper binaryNode = new BinaryNode(leftNode, operatorToken, rightNode);
+			NodeWrapper binaryNode = GlobalAllocator.allocate(BinaryNode(leftNode, operatorToken, rightNode));
 		
 			//Add binary node to nodes
 			nodes->push_back(binaryNode);
-			
-			//Advance to next token
-			advance();
-			
+						
 			//Set left node to binary node by pointing to the binary node in the vector of nodes
 			leftNode = &nodes->at(nodes->size() - 1);
 		}

@@ -10,6 +10,16 @@ private:
 
 public:
 
+	template<typename T>
+	T* allocate(T&& t) {
+		//Allocate memory for the object
+		void* memory = malloc(sizeof(T));
+		//Copy the object into the memory
+		memcpy(memory, &t, sizeof(T));
+		registerAllocation(memory);
+		return (T*)memory;
+	}
+	
 	//Adds a allocations to the array of allocations
 	void registerAllocation(void* address) {
 		//If the address is already in the array, return
@@ -42,28 +52,17 @@ public:
 		}
 		//Deletes the array
 	}
+	void freeAllocation(void* address) {
+		//Frees the allocation
+		free(address);
+		//Removes the allocation from the array
+		for (int i = 0; i < this->nAllocations; i++) {
+			if (this->allocations[i] == address) {
+				this->allocations[i] = nullptr;
+				this->nAllocations--;
+				this->allocations = (void**)realloc(this->allocations, this->nAllocations * sizeof(void*));
+			}
+		}
+	}
 
 }GlobalAllocator; //Global allocater, cleared after every code execution
-
-//Overload the new operator to use the global allocator
-void* operator new(size_t size) {
-	void* address = malloc(size);
-	GlobalAllocator.registerAllocation(address);
-	return address;
-}
-//Overload the delete operator to use the global allocator
-void operator delete(void* address) {
-	GlobalAllocator.registerAllocation(address);
-	free(address);
-}
-//Overload the new[] operator to use the global allocator
-void* operator new[](size_t size) {
-	void* address = malloc(size);
-	GlobalAllocator.registerAllocation(address);
-	return address;
-}
-//Overload the delete[] operator to use the global allocator
-void operator delete[](void* address) {
-	GlobalAllocator.registerAllocation(address);
-	free(address);
-}

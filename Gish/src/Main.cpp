@@ -24,6 +24,30 @@ void sleep(unsigned long long int duration) {
 	}
 }
 
+template <typename T>
+std::string join(std::vector<T>& v, const char* delimiter) {
+	std::string result = "";
+	for (unsigned int i = 0; i < v.size(); i++) {
+		if (i <= v.size() - 2)
+			result += v[i].toString() + delimiter;
+		else
+			result += v[i].toString();
+	}
+	return result;
+}
+
+template <typename T>
+std::string joinPointer(std::vector<T>& v, const char* delimiter) {
+	std::string result = "";
+	for (unsigned int i = 0; i < v.size(); i++) {
+		if (i <= v.size() - 2)
+			result += v[i]->toString() + delimiter;
+		else
+			result += v[i]->toString();
+	}
+	return result;
+}
+
 #include "ExitCodes.h"
 #include "Allocator.h"
 #include "Functions.h"
@@ -35,6 +59,8 @@ void sleep(unsigned long long int duration) {
 #include "Parser.h"
 #include "Interpreter.h"
 #include "Gish.hpp"
+
+#include "PostDefines.h"
 
 int main(int argc, char** argv) {
 

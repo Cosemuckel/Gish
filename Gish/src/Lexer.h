@@ -37,11 +37,15 @@ class Token {
 
 public:
 
+	//Default token and value list
+	static std::vector<Token>* defaultTokenList;
+	static std::vector<Value>* defaultValueList;
+
 	TokenType* tokenType = nullptr;
 	Position startPos;
 	Position endPos;
-	std::vector<Token>* arrayIn = &GishClient::tokenList;
-	std::vector<Value>* valuesIn = &GishClient::valueList;
+	std::vector<Token>* tokenList = defaultTokenList;
+	std::vector<Value>* valueList = defaultValueList;
 	int value = -1;
 
 	std::string toString() {
@@ -68,12 +72,14 @@ public:
 	Token(TokenType* tokenType, Position startPos, int value) {
 		this->tokenType = tokenType;
 		this->startPos = startPos;
+		this->endPos = startPos.advanced(0);
 		this->value = value;
 	}
 
 	Token(TokenType* tokenType, Position startPos) {
 		this->tokenType = tokenType;
 		this->startPos = startPos;
+		this->endPos = startPos.advanced(0);
 	}
 
 	Token() {
@@ -83,7 +89,7 @@ public:
 	Value* getValue() {
 		if (this->value == -1)
 			return nullptr;
-		return &(*valuesIn)[this->value];
+		return &(*valueList)[this->value];
 	}
 
 	bool matches(const TokenType& tokenType) {
@@ -101,23 +107,23 @@ public:
 class Lexer {
 public:
 
-	std::string code;
+	std::string* code;
 	Position position;
 	char currentChar = 1;
 	char lastChar = 1;
 	std::vector<Token>* tokens;
 
-	Lexer(std::string& code, std::string& name, std::vector<Token>* tokens) {
+	Lexer(std::string* code, std::string* name, std::vector<Token>* tokens) {
 		this->code = code;
-		this->position = Position(0, 0, 1, new std::string(code), new std::string(name));
+		this->position = Position(0, 0, 1, code, name);
 		this->tokens = tokens;
 	}
 
 	void advance() {
 		this->position.advance(this->currentChar);
 		this->lastChar = this->currentChar;
-		if (this->position.character - 1 < this->code.size())
-			this->currentChar = this->code.at(this->position.character - 1);
+		if (this->position.character - 1 < this->code->size())
+			this->currentChar = this->code->at(this->position.character - 1);
 		else this->currentChar = 2;
 	}
 
@@ -128,7 +134,8 @@ public:
 				this->advance();
 			}
 			else if (LEXING::digits.find(this->currentChar) != std::string::npos) {
-				tokens->push_back(this->makeNumberLiteral());
+				Token token = this->makeNumberLiteral();
+				tokens->push_back(token);
 			}
 			else if (this->currentChar == '"') {
 				Token t = (this->makeStringLiteral());	// Will return a token with the string literal value, or throw an error if it fails.
@@ -175,7 +182,8 @@ public:
 
 		}
 
-		tokens->push_back(Token(&TT_EOF, this->position));
+		Token eofToken = Token(&TT_EOF, this->position);
+		tokens->push_back(eofToken);
 		return tokens;
 
 	}
