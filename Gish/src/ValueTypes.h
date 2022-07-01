@@ -66,7 +66,15 @@ public:
 	Value(std::vector<Value> a) : type(Type::Array), a(a) {}
 	Value() : type(Type::Null) {}
 	Value(const Value& v) {
-		*this = v;
+		type = v.type;
+		switch (type) {
+		case Type::Bool: b = v.b; break;
+		case Type::Number: n = v.n; break;
+		case Type::String: s = v.s; break;
+		case Type::Array: a = v.a; break;
+		case Type::Void: break;
+		case Type::Null: break;
+		}
 	}
 	
 	std::string toString() {

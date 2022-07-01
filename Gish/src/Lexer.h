@@ -104,6 +104,9 @@ public:
 
 };
 
+int operator+ (Token&& value);
+Token* operator- (Token&& value);
+
 class Lexer {
 public:
 
@@ -219,7 +222,6 @@ public:
 
 		else if (string == "greater") tokenType = &TT_GREAT;
 		else if (string == "smaller") tokenType = &TT_SMALL;
-		else if (string == "not")     tokenType = &TT_NOT;
 
 		else if (string == "return")  tokenType = &TT_KEYWORD_RETURN;
 
@@ -270,6 +272,7 @@ public:
 		else if (string == "nothing")   tokenType = &TT_NOTHING;
 		
 		else tokenType = &TT_WORD;
+		std::cout << "Identifier: " << string << std::endl;
 		if (tokenType->Class != TT_WORD.Class)
 			return Token(tokenType, startPos, this->position, +Value());
 		return Token(tokenType, startPos, this->position, +Value(string));
@@ -325,6 +328,8 @@ public:
 			this->advance();
 		}
 
+		
+		std::cout << "Number: " << numString << std::endl;
 		if (!dotCount)
 			return Token(&TT_INT, startPos, this->position, +Value(Number(std::stoll(numString))));
 //F Bad precision		// return Token(&TT_DOUBLE, startPos.copy(), this->position, new Value(Number(std::stod(numString))));
