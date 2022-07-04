@@ -12,16 +12,17 @@ namespace GishClient {
 	bool interpreterOutput = false;
 	bool lastInterpreterOutput = false;
 
-	std::vector<Value> valueList;
-	std::vector<Token> tokenList;
-	std::vector<NodeWrapper> wrappedNodeList;
+//D	std::vector<Value> valueList;
+//D	std::vector<Token> tokenList;
+//D	std::vector<NodeWrapper> wrappedNodeList;
 
 	//Process the currently loaded code
 	bool execute() {
 
 		//Tokenizes the code
+		std::vector <Token> tokenList;
 		try {
-			Lexer(&currentCode, &currentFileName, &tokenList).lex();
+			tokenList = Lexer(&currentCode, &currentFileName).lex();
 		} catch (Error e) {
 			std::cout << e.toString() << std::endl;
 			return false;
@@ -31,18 +32,10 @@ namespace GishClient {
 		if (lexingOutput)
 			std::cout << "\n" << ( "[ " + join(tokenList, ", ") + " ]" ) << "\n";
 
-		//Print all tokens including their positions
-		if (parsingOutput) {
-			std::cout << "\n";
-			for (auto token : tokenList) {
-				std::cout << token.toString() << " from " << token.startPos.toString() << " to " << token.endPos.toString() << "\n";
-			}
-		}
-
 		NodeWrapper* parserResult;
 		//Parse the tokens
 		try {
-			parserResult = Parser(&tokenList, &wrappedNodeList).parse();
+			parserResult = Parser(&tokenList).parse();
 		} catch (Error e) {
 			std::cout << e.toString() << std::endl;
 			return false;
@@ -64,13 +57,6 @@ namespace GishClient {
 		stdcinAllocator.clearAllAllocations();
 		//Clear all allocated nodes, etc.
 		GlobalAllocator.clearAllAllocations();
-		
-		//Clear the token list
-		tokenList.clear();
-		//Clear the node list
-		wrappedNodeList.clear();
-		//Clear the value list
-		valueList.clear();
 
 		return true;
 

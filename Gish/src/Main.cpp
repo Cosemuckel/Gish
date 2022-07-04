@@ -48,6 +48,7 @@ std::string joinPointer(std::vector<T>& v, const char* delimiter) {
 	return result;
 }
 
+
 #include "ExitCodes.h"
 #include "Allocator.h"
 #include "Functions.h"

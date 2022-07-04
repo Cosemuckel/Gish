@@ -10,7 +10,6 @@ bool isInVector(const T& element, const std::vector<T>& vector) {
 class Parser {
 private:
 	std::vector<Token>* tokens;
-	std::vector<NodeWrapper>* nodes;
 	int currenToken = -1; //Pointing to element in tokens, the same as tokenIndex
 
 public:
@@ -28,31 +27,36 @@ public:
 
 public:
 
-	Parser(std::vector<Token>* tokens, std::vector<NodeWrapper>* nodes) {
+	Parser(std::vector<Token>* tokens) {
 		this->tokens = tokens;
-		this->nodes = nodes;
 		this->advance();
 	}
 
 	Token* advance() {
 		this->currenToken++;
-		if (this->currenToken < tokens->size()) {
+		if (this->currenToken < tokens->size()) {y<
 			return &tokens->at(this->currenToken);
 		}
 	}
 
 	NodeWrapper* parse() {
-		NodeWrapper* result = comparaisonExpression();
+		NodeWrapper* result = expression();
 		if (!this->getCurrentToken()->matches(TT_EOF)) {
 			throw InvalidSyntaxError("Expected operator instead of " + this->getCurrentToken()->toString(), &this->getCurrentToken()->startPos, &this->getCurrentToken()->endPos);
 		}
 		return result;
 	}
 
+	NodeWrapper* expression() {
+	 	return binaryOperation(&Parser::comparaisonExpression, &Parser::comparaisonExpression, { &TT_AND, &TT_OR });
+	}	
+
 	NodeWrapper* comparaisonExpression() {
-		NodeWrapper* left = this->expression();
+		NodeWrapper* left = this->normalExpression();
 		Token* token = this->getCurrentToken();
 		bool negated = false;
+		// Print the token, and if it equals "is"
+		std::cout << token->toString() << " " << token->matchesWord("") << std::endl;
 		if (token->matchesWord("is")) {
 			token = this->advance();
 			if (token->matchesWord("not")) {
@@ -60,43 +64,40 @@ public:
 				token = this->advance();
 			}
 			if (!token->matches(TT_GREAT) && !token->matches(TT_EQUAL) && !token->matches(TT_SMALL))
-				throw InvalidSyntaxError("Expected 'greater', 'smaller' or 'equal'" , &token->startPos, &token->endPos);
+				throw InvalidSyntaxError("Expected 'greater', 'smaller' or 'equal'", &token->startPos, &token->endPos);
 			this->advance();
 			if (token->matches(TT_GREAT) || token->matches(TT_SMALL)) {
-				if (this->getCurrentToken()->matchesWord("or")) {
+				if (this->getCurrentToken()->matches(TT_OR)) {
 					this->advance();
 					if (!this->getCurrentToken()->matches(TT_EQUAL))
-						throw InvalidSyntaxError("Expected 'equal'", &token->startPos, &token->endPos);
+						throw InvalidSyntaxError("Expected 'equal'", &this->getCurrentToken()->startPos, &this->getCurrentToken()->endPos);
 					Position endPos = this->getCurrentToken()->endPos;
 					this->advance();
 					if (!this->getCurrentToken()->matchesWord("to"))
-						throw InvalidSyntaxError("Expected 'to'", &token->startPos, &token->endPos);
+						throw InvalidSyntaxError("Expected 'to'", &this->getCurrentToken()->startPos, &this->getCurrentToken()->endPos);
 					this->advance();
-					NodeWrapper* right = this->expression();
-					NodeWrapper binaryNode = new BinaryNode(left, -Token(token->matches(TT_GREAT) ? &TT_GREAT_EQ : &TT_SMALL_EQ, token->startPos, endPos, +Value(Bool(negated))), right);
-					nodes->push_back(binaryNode);
-					return &nodes->back();
+					NodeWrapper* right = this->normalExpression();
+					NodeWrapper* binaryNode = GlobalAllocator.allocate(NodeWrapper(GlobalAllocator.allocate(BinaryNode(left, GlobalAllocator.allocate(Token(token->matches(TT_GREAT) ? &TT_GREAT_EQ : &TT_SMALL_EQ, token->startPos, endPos, Value(Bool(negated)))), right))));
+					return binaryNode;
 				}
 				if (!this->getCurrentToken()->matchesWord("than"))
-					throw InvalidSyntaxError("Expected 'to'", &token->startPos, &token->endPos);
+					throw InvalidSyntaxError("Expected 'than'", &this->getCurrentToken()->startPos, &this->getCurrentToken()->endPos);
 				this->advance();
-				NodeWrapper* right = this->expression();
-				NodeWrapper binaryNode = new BinaryNode(left, -Token(token->tokenType, token->startPos, token->endPos, +Value(Bool(negated))), right);
-				nodes->push_back(binaryNode);
-				return &nodes->back();
+				NodeWrapper* right = this->normalExpression();
+				NodeWrapper* binaryNode = GlobalAllocator.allocate(NodeWrapper(GlobalAllocator.allocate(BinaryNode(left, GlobalAllocator.allocate(Token(token->tokenType, token->startPos, token->endPos, Value(Bool(negated)))), right))));
+				return binaryNode;
 			}
 			if (!this->getCurrentToken()->matchesWord("to"))
-				throw InvalidSyntaxError("Expected 'to'", &token->startPos, &token->endPos);
+				throw InvalidSyntaxError("Expected 'to'", &this->getCurrentToken()->startPos, &this->getCurrentToken()->endPos);
 			this->advance();
-			NodeWrapper* right = this->expression();
-			NodeWrapper binaryNode = new BinaryNode(left, -Token(token->tokenType, token->startPos, token->endPos, +Value(Bool(negated))), right);
-			nodes->push_back(binaryNode);
-			return &nodes->back();
+			NodeWrapper* right = this->normalExpression();
+			NodeWrapper* binaryNode = GlobalAllocator.allocate(NodeWrapper(GlobalAllocator.allocate(BinaryNode(left, GlobalAllocator.allocate(Token(token->tokenType, token->startPos, token->endPos, Value(Bool(negated)))), right))));
+			return binaryNode;
 		}
 		return left;
 	}
 
-	NodeWrapper* expression() {
+	NodeWrapper* normalExpression() {
 		return binaryOperation(&Parser::term, &Parser::term, { &TT_PLUS, &TT_MINUS });
 	}
 
@@ -105,9 +106,8 @@ public:
 		if (token->matches(TT_PLUS) || token->matches(TT_MINUS)) {
 			advance();
 			NodeWrapper* node = term();
-			NodeWrapper unaryNode = GlobalAllocator.allocate(UnaryNode(token, node));
-			nodes->push_back(unaryNode);
-			return &nodes->back();
+			NodeWrapper* unaryNode = GlobalAllocator.allocate(NodeWrapper(GlobalAllocator.allocate(UnaryNode(token, node))));
+			return unaryNode;
 		}
 		return binaryOperation(&Parser::factor, &Parser::factor, { &TT_MULT, &TT_DIV });
 	}
@@ -120,9 +120,8 @@ public:
 		NodeWrapper* node = nucleus();
 		Token* token = this->getCurrentToken();
 		if (token->matches(TT_FAC)) {
-			NodeWrapper unaryNode = GlobalAllocator.allocate(UnaryNode(token, node));
-			nodes->push_back(unaryNode);
-			return &nodes->back();
+			NodeWrapper* unaryNode = GlobalAllocator.allocate(NodeWrapper(GlobalAllocator.allocate(UnaryNode(token, node))));
+			return unaryNode;
 		}
 		return node;
 	}
@@ -131,9 +130,8 @@ public:
 		Token* token = getCurrentToken();
 		if (token->matches(TT_INT) || token->matches(TT_DOUBLE) || token->matches(TT_STRING) || token->matches(TT_BOOLEAN)) {
 			this->advance();
-			NodeWrapper valueNode = GlobalAllocator.allocate(ValueNode(token));
-			nodes->push_back(valueNode);
-			return &nodes->back();
+			NodeWrapper* valueNode = GlobalAllocator.allocate(NodeWrapper(GlobalAllocator.allocate(ValueNode(token))));
+			return valueNode;
 		}
 		if (token->matches(TT_L_PAREN)) {
 			this->advance();
@@ -162,13 +160,10 @@ public:
 			NodeWrapper* rightNode = (this->*rightNodeCreationFunction)(); //Points to element in the vector of nodes
 
 			//Create binary node
-			NodeWrapper binaryNode = GlobalAllocator.allocate(BinaryNode(leftNode, operatorToken, rightNode));
-
-			//Add binary node to nodes
-			nodes->push_back(binaryNode);
+			NodeWrapper* binaryNode = GlobalAllocator.allocate(NodeWrapper(GlobalAllocator.allocate(BinaryNode(leftNode, operatorToken, rightNode))));
 
 			//Set left node to binary node by pointing to the binary node in the vector of nodes
-			leftNode = &nodes->at(nodes->size() - 1);
+			leftNode = binaryNode;
 		}
 
 		return leftNode;

@@ -2,9 +2,10 @@
 class Bool {
 public:
 	Bool(bool b) : value(b) {}
+	Bool () : value(false) {}
 	bool value;
 
-	std::string toString() {
+	std::string toString() const {
 		return value ? "true" : "false";
 	}
 };
@@ -15,9 +16,10 @@ typedef ttmath::Int<256> int256;
 class Number {
 public:
 	Number(int256 n) : value(n) {}
+	Number() : value(0) {}
 	int256 value;
 	
-	std::string toString() {
+	std::string toString() const {
 		return value.ToString();
 	}
 
@@ -53,12 +55,12 @@ public:
 
 	Type type;
 	
-	union {
+	// union {
 		Bool b;
 		Number n;
 		std::string s;
 		std::vector<Value> a;
-	};
+	// };
 
 	Value(Bool b) : type(Type::Bool), b(b) {}
 	Value(Number n) : type(Type::Number), n(n) {}
@@ -66,22 +68,23 @@ public:
 	Value(std::vector<Value> a) : type(Type::Array), a(a) {}
 	Value() : type(Type::Null) {}
 	Value(const Value& v) {
+		std::cout << "Created: ";
 		type = v.type;
 		switch (type) {
 		case Type::Bool: b = v.b; break;
-		case Type::Number: n = v.n; break;
-		case Type::String: s = v.s; break;
-		case Type::Array: a = v.a; break;
+		case Type::Number: n = v.n;  break;
+		case Type::String: s = v.s;  break;
+		case Type::Array: a = v.a;  break;
 		case Type::Void: break;
 		case Type::Null: break;
 		}
 	}
 	
 	std::string toString() {
-		switch (type) {
-		case Type::Bool: return b.toString();
-		case Type::Number: return n.toString();
-		case Type::String: return '"' + s + '"';
+		switch (this->type) {
+		case Type::Bool: return this->b.toString();
+		case Type::Number: return this->n.toString();
+		case Type::String: return '"' + this->s + '"';
 		case Type::Array: return "[" + join(a, ", ") + "]";
 		case Type::Void: return "void";
 		case Type::Null: return "null";
@@ -104,4 +107,3 @@ public:
 	}
 
 };
-int operator+ (Value&& value);

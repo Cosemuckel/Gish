@@ -46,7 +46,7 @@ public:
 	}
 
 	Position* copy() {
-		return new Position(*this);
+		return GlobalAllocator.allocate(Position(*this));
 	}
 
 	std::string toString() {
