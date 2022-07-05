@@ -27,11 +27,11 @@ void sleep(unsigned long long int duration) {
 template <typename T>
 std::string join(std::vector<T>& v, const char* delimiter) {
 	std::string result = "";
-	for (unsigned int i = 0; i < v.size(); i++) {
-		if (i <= v.size() - 2)
-			result += v[i].toString() + delimiter;
-		else
-			result += v[i].toString();
+	for (int i = 0; i < v.size(); i++) {
+		result += v.at(i).toString();
+		if (i < v.size() - 1) {
+			result += ", ";
+		}
 	}
 	return result;
 }
@@ -39,11 +39,11 @@ std::string join(std::vector<T>& v, const char* delimiter) {
 template <typename T>
 std::string joinPointer(std::vector<T>& v, const char* delimiter) {
 	std::string result = "";
-	for (unsigned int i = 0; i < v.size(); i++) {
-		if (i <= v.size() - 2)
-			result += v[i]->toString() + delimiter;
-		else
-			result += v[i]->toString();
+	for (int i = 0; i < v.size(); i++) {
+		result += v.at(i)->toString();
+		if (i < v.size() - 1) {
+			result += ", ";
+		}
 	}
 	return result;
 }

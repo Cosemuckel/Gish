@@ -248,7 +248,7 @@ public:
 		else if (string == "Boolean") tokenType = &TT_KEYWORD_BOOLEAN;
 		else if (string == "Void")    tokenType = &TT_KEYWORD_VOID;
 
-		else if (string == "set")       tokenType = &TT_SET;
+		// else if (string == "set")       tokenType = &TT_SET;
 		else if (string == "equal")     tokenType = &TT_EQUAL;
 		else if (string == "make")      tokenType = &TT_MAKE;
 		else if (string == "reference") tokenType = &TT_REFERENCE;

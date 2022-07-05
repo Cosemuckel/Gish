@@ -89,7 +89,7 @@ TokenType TT_R_SQUARE_PAREN ("SYMBOL", "R_SQUARE_PAREN");
 TokenType TT_L_CURLY_PAREN  ("SYMBOL", "L_CURLY_PAREN");
 TokenType TT_R_CURLY_PAREN  ("SYMBOL", "R_CURLY_PAREN");
 
-TokenType TT_SET       ("VAR", "SET");
+// TokenType TT_SET       ("VAR", "SET");
 TokenType TT_EQUAL     ("VAR", "EQUAL");
 TokenType TT_MAKE      ("VAR", "MAKE");
 TokenType TT_REFERENCE ("VAR", "REFERENCE");

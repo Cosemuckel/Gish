@@ -33,18 +33,80 @@ public:
 	}
 
 	Token* advance() {
-		this->currenToken++;
-		if (this->currenToken < tokens->size()) {y<
-			return &tokens->at(this->currenToken);
+		
+		if (this->currenToken < int(this->tokens->size()) - 1) {
+			this->currenToken++;
 		}
+		return &tokens->at(this->currenToken);
 	}
 
 	NodeWrapper* parse() {
-		NodeWrapper* result = expression();
+		NodeWrapper* result = listExpression(&TT_EOF);
 		if (!this->getCurrentToken()->matches(TT_EOF)) {
 			throw InvalidSyntaxError("Expected operator instead of " + this->getCurrentToken()->toString(), &this->getCurrentToken()->startPos, &this->getCurrentToken()->endPos);
 		}
 		return result;
+	}
+
+	NodeWrapper* listExpression(TokenType* endOfExpression) {
+		std::vector<NodeWrapper*>* statements = GlobalAllocator.allocate(std::vector<NodeWrapper*>());
+		while (this->getCurrentToken()->matches(TT_SEMICOLON)) {
+			this->advance();
+		}
+		while (!this->getCurrentToken()->matches(*endOfExpression)) {
+			NodeWrapper* node = this->variableChangingExpression();
+			bool s = false;
+			while (this->getCurrentToken()->matches(TT_SEMICOLON)) {
+				this->advance();
+				s = true;
+			}
+			if (!s)
+				throw InvalidSyntaxError("Expected ';' instead of " + this->getCurrentToken()->toString(), &this->getCurrentToken()->startPos, &this->getCurrentToken()->endPos);
+			statements->push_back(node);
+		}
+		NodeWrapper* listNode = GlobalAllocator.allocate(NodeWrapper(GlobalAllocator.allocate(ListNode(statements))));
+		return listNode;
+	}
+
+	NodeWrapper* variableChangingExpression() {
+		if (this->getCurrentToken()->matchesWord("set")) {
+			Token* varName = this->advance();
+			if (!varName->matches(TT_WORD)) {
+				throw InvalidSyntaxError("Expected variable name instead of " + varName->toString(), &varName->startPos, &varName->endPos);
+			}
+			this->advance();
+			if (!this->getCurrentToken()->matches(TT_EQUAL)) {
+				throw InvalidSyntaxError("Expected 'equal' instead of " + this->getCurrentToken()->toString(), &this->getCurrentToken()->startPos, &this->getCurrentToken()->endPos);
+			}
+			this->advance();
+			if (!this->getCurrentToken()->matchesWord("to"))
+				throw InvalidSyntaxError("Expected 'to' instead of " + this->getCurrentToken()->toString(), &this->getCurrentToken()->startPos, &this->getCurrentToken()->endPos);
+			this->advance();
+			NodeWrapper* value = this->expression();
+			NodeWrapper* node = GlobalAllocator.allocate(NodeWrapper(GlobalAllocator.allocate(VariableReAssignNode(varName, value))));
+			return node;			 
+		}
+		return this->variableIntroducingExpression();
+	}
+
+	NodeWrapper* variableIntroducingExpression() {
+		Token* token = this->getCurrentToken();
+		if (token->matches(TT_KEYWORD_NUMBER) || token->matches(TT_KEYWORD_STRING) || token->matches(TT_KEYWORD_BOOLEAN)) {
+			this->advance();
+			Token* varName = this->getCurrentToken();
+			if (!varName->matches(TT_WORD)) {
+				throw InvalidSyntaxError("Expected identifier instead of " + varName->toString(), &varName->startPos, &varName->endPos);
+			}
+			this->advance();
+			if (!this->getCurrentToken()->matches(TT_EQUALS))
+				throw InvalidSyntaxError("Expected 'equals' / '=' instead of " + this->getCurrentToken()->toString(), &this->getCurrentToken()->startPos, &this->getCurrentToken()->endPos);
+			this->advance();
+			NodeWrapper* value = this->expression();
+			NodeWrapper* node = GlobalAllocator.allocate(NodeWrapper(GlobalAllocator.allocate(VariableDeclarationNode(token, varName, value))));
+			return node;			
+		}
+		
+		return this->expression();
 	}
 
 	NodeWrapper* expression() {
@@ -54,11 +116,9 @@ public:
 	NodeWrapper* comparaisonExpression() {
 		NodeWrapper* left = this->normalExpression();
 		Token* token = this->getCurrentToken();
-		bool negated = false;
-		// Print the token, and if it equals "is"
-		std::cout << token->toString() << " " << token->matchesWord("") << std::endl;
 		if (token->matchesWord("is")) {
 			token = this->advance();
+			bool negated = false;
 			if (token->matchesWord("not")) {
 				negated = true;
 				token = this->advance();
@@ -118,8 +178,9 @@ public:
 
 	NodeWrapper* atom() {
 		NodeWrapper* node = nucleus();
-		Token* token = this->getCurrentToken();
+		Token* token = this->getCurrentToken();		
 		if (token->matches(TT_FAC)) {
+			this->advance();
 			NodeWrapper* unaryNode = GlobalAllocator.allocate(NodeWrapper(GlobalAllocator.allocate(UnaryNode(token, node))));
 			return unaryNode;
 		}
@@ -128,13 +189,30 @@ public:
 
 	NodeWrapper* nucleus() {
 		Token* token = getCurrentToken();
+		this->advance();
 		if (token->matches(TT_INT) || token->matches(TT_DOUBLE) || token->matches(TT_STRING) || token->matches(TT_BOOLEAN)) {
-			this->advance();
 			NodeWrapper* valueNode = GlobalAllocator.allocate(NodeWrapper(GlobalAllocator.allocate(ValueNode(token))));
 			return valueNode;
 		}
+		if (token->matches(TT_L_SQUARE_PAREN)) {
+			std::vector<NodeWrapper*>* nodes = new std::vector<NodeWrapper*>();
+			while (true) {
+				NodeWrapper* node = this->expression();
+				nodes->push_back(node);
+				if (!this->getCurrentToken()->matches(TT_R_SQUARE_PAREN) && !this->getCurrentToken()->matches(TT_COMMA))
+					throw InvalidSyntaxError("Expected ','", &this->getCurrentToken()->startPos, &this->getCurrentToken()->endPos);
+				this->advance();
+				if (this->getLastToken()->matches(TT_R_SQUARE_PAREN))
+					break;
+			}
+			NodeWrapper* valueNode = GlobalAllocator.allocate(NodeWrapper(GlobalAllocator.allocate(ArrayNode(nodes, nullptr))));
+			return valueNode;
+		}
+		if (token->matches(TT_WORD)) {
+			NodeWrapper* valueNode = GlobalAllocator.allocate(NodeWrapper(GlobalAllocator.allocate(VariableAccessNode(token))));
+			return valueNode;			
+		}			
 		if (token->matches(TT_L_PAREN)) {
-			this->advance();
 			NodeWrapper* node = expression();
 			if (!getCurrentToken()->matches(TT_R_PAREN))
 				throw InvalidSyntaxError("Expected ')' ", &getCurrentToken()->startPos, &getCurrentToken()->endPos);
