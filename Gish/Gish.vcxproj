@@ -97,6 +97,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Allocator.h" />
+    <ClInclude Include="src\Environment.h" />
     <ClInclude Include="src\ExitCodes.h" />
     <ClInclude Include="src\Functions.h" />
     <ClInclude Include="src\Gish.hpp" />

@@ -9,7 +9,7 @@ namespace GishClient {
 	//Should the outputs of the proccesses should be printed to the stdout(Read docs: config)
 	bool lexingOutput = true;
 	bool parsingOutput = true;
-	bool interpreterOutput = false;
+	bool interpreterOutput = true;
 	bool lastInterpreterOutput = false;
 
 //D	std::vector<Value> valueList;
@@ -44,6 +44,19 @@ namespace GishClient {
 		//Print the output created by the parser
 		if (parsingOutput)
 			std::cout << "\n" << ( parserResult->toString() ) << "\n";
+
+		//Evaluate the node tree using the interpreter
+		Value* interpreterResult;
+		try {
+			interpreterResult = Interpreter().run(parserResult);
+		} catch (Error e) {
+			std::cout << e.toString() << std::endl;
+			return false;
+		}
+
+		//Print the output created by the interpreter
+		if (interpreterOutput)
+			std::cout << "\n" << ( interpreterResult->toString() ) << "\n";
 		
 		return true;
 	}

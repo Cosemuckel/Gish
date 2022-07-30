@@ -7,6 +7,47 @@ bool isInVector(const T& element, const std::vector<T>& vector) {
 	return std::find(vector.begin(), vector.end(), element) != vector.end();
 }
 
+class MethodManager;
+
+// A method class to contain a name, arguments, and their places in the name
+class Method {
+public:
+	// Constructor
+	Method(std::string name, std::vector<int> argmentPlaces) {
+		this->name.push_back(name);
+		this->argmentPlaces = argmentPlaces;
+	}
+	
+protected:
+	
+	std::vector<std::string> name;
+	std::vector<int> argmentPlaces;
+
+	friend class MethodManager;
+	
+};
+
+class MethodManager {
+public:
+	
+	// Constructor
+	MethodManager() {
+		
+	}
+	
+	// Add a method to the manager
+	void addMethod(Method method) {
+		methods.push_back(method);
+	}
+
+
+private:
+	std::vector<Method> methods;
+	
+	friend class Method;
+	
+};
+
 class Parser {
 private:
 	std::vector<Token>* tokens;
@@ -40,6 +81,12 @@ public:
 		return &tokens->at(this->currenToken);
 	}
 
+	Token* getThenAdvance() {
+		Token* token = this->getCurrentToken();
+		this->advance();
+		return token;
+	}
+
 	NodeWrapper* parse() {
 		NodeWrapper* result = listExpression(&TT_EOF);
 		if (!this->getCurrentToken()->matches(TT_EOF)) {
@@ -54,7 +101,7 @@ public:
 			this->advance();
 		}
 		while (!this->getCurrentToken()->matches(*endOfExpression)) {
-			NodeWrapper* node = this->variableChangingExpression();
+			NodeWrapper* node = this->functionalExpression();
 			bool s = false;
 			while (this->getCurrentToken()->matches(TT_SEMICOLON)) {
 				this->advance();
@@ -66,6 +113,65 @@ public:
 		}
 		NodeWrapper* listNode = GlobalAllocator.allocate(NodeWrapper(GlobalAllocator.allocate(ListNode(statements))));
 		return listNode;
+	}
+
+	NodeWrapper* functionalExpression() {
+		Token* token = this->getCurrentToken();
+		if (token->matches(TT_KEYWORD_DO)) {
+			this->advance();
+			token = this->getThenAdvance();
+			NodeWrapper* body;
+			if (token->matches(TT_NOTHING)) body = GlobalAllocator.allocate(NodeWrapper(GlobalAllocator.allocate(ListNode(GlobalAllocator.allocate(std::vector<NodeWrapper*>())))));
+			else if (token->matches(TT_L_CURLY_PAREN)) body = this->listExpression(&TT_R_CURLY_PAREN);
+			else body = this->variableChangingExpression();
+			// If
+			if (this->getCurrentToken()->matches(TT_KEYWORD_IF)) {
+				token = this->advance();
+				NodeWrapper* condition = this->expression();
+				if (this->getCurrentToken()->matches(TT_COMMA)) {
+					this->advance();
+					if (!this->getCurrentToken()->matches(TT_KEYWORD_ELSE))
+						throw InvalidSyntaxError("Expected 'else' instead of " + token->toString(), &token->startPos, &token->endPos);
+					this->advance();
+					if (!this->getCurrentToken()->matches(TT_KEYWORD_DO))
+						throw InvalidSyntaxError("Expected 'do' instead of " + token->toString(), &token->startPos, &token->endPos);
+					NodeWrapper* elseBody = this->functionalExpression();
+					return GlobalAllocator.allocate(NodeWrapper(GlobalAllocator.allocate(IfNode(condition, body, elseBody))));
+				}
+			}
+			// For
+			if (this->getCurrentToken()->matches(TT_KEYWORD_FOR)) {
+				this->advance();
+				NodeWrapper* amount = this->expression();
+				token = this->getThenAdvance();
+				if (token->matchesWord("seconds"))
+					return GlobalAllocator.allocate(NodeWrapper(GlobalAllocator.allocate(ForNode(amount, body, 1))));
+				if (token->matchesWord("iterations"))
+					return GlobalAllocator.allocate(NodeWrapper(GlobalAllocator.allocate(ForNode(amount, body, 0))));
+				throw InvalidSyntaxError("Expected 'seconds' or 'iterations' instead of " + token->toString(), &token->startPos, &token->endPos);
+			}
+			//Forever (word)
+			if (this->getCurrentToken()->matchesWord("forever")) {
+				std::cout << this->getCurrentToken()->toString() << std::endl;
+				this->advance();
+				return GlobalAllocator.allocate(NodeWrapper(GlobalAllocator.allocate(ForNode(0, body, 2))));
+			}
+			//As long as
+			if (this->getCurrentToken()->matchesWord("as")) {
+				this->advance();
+				if (!this->getCurrentToken()->matchesWord("long"))
+					throw InvalidSyntaxError("Expected 'long' instead of " + token->toString(), &token->startPos, &token->endPos);
+				this->advance();
+				if (!this->getCurrentToken()->matchesWord("as"))
+					throw InvalidSyntaxError("Expected 'as' instead of " + token->toString(), &token->startPos, &token->endPos);
+				this->advance();
+				NodeWrapper* condition = this->expression();
+				return GlobalAllocator.allocate(NodeWrapper(GlobalAllocator.allocate(AsLongAsNode(condition, body))));
+			}
+			
+			return body;
+		}
+		return this->variableChangingExpression();
 	}
 
 	NodeWrapper* variableChangingExpression() {
@@ -99,11 +205,15 @@ public:
 			}
 			this->advance();
 			if (!this->getCurrentToken()->matches(TT_EQUALS))
-				throw InvalidSyntaxError("Expected 'equals' / '=' instead of " + this->getCurrentToken()->toString(), &this->getCurrentToken()->startPos, &this->getCurrentToken()->endPos);
+				throw InvalidSyntaxError("Expected 'equals' instead of " + this->getCurrentToken()->toString(), &this->getCurrentToken()->startPos, &this->getCurrentToken()->endPos);
 			this->advance();
 			NodeWrapper* value = this->expression();
 			NodeWrapper* node = GlobalAllocator.allocate(NodeWrapper(GlobalAllocator.allocate(VariableDeclarationNode(token, varName, value))));
 			return node;			
+		}
+		// Keyword void only for methods
+		if (token->matches(TT_KEYWORD_VOID)) {
+			
 		}
 		
 		return this->expression();

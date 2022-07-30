@@ -9,6 +9,7 @@
 #include <chrono>
 #include <thread>
 #include <conio.h>
+#include <future>
 
 #include "ttmath.h"
 
@@ -53,8 +54,9 @@ std::string joinPointer(std::vector<T>& v, const char* delimiter) {
 #include "Allocator.h"
 #include "Functions.h"
 
-#include "ValueTypes.h"
 #include "Global.h"
+#include "ValueTypes.h"
+#include "Environment.h"
 #include "Lexer.h"
 #include "Nodes.h"
 #include "Parser.h"

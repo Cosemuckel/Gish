@@ -217,7 +217,6 @@ public:
 		else if (string == "index")        tokenType = &TT_KEYWORD_INDEX;
 		else if (string == "character")    tokenType = &TT_KEYWORD_CHARACTER;
 		else if (string == "sizeof")       tokenType = &TT_KEYWORD_SIZEOF;
-		else if (string == "iterations")   tokenType = &TT_KEYWORD_ITERATIONS;
 
 		else if (string == "newline")   tokenType = &TT_KEYWORD_NEWLINE;
 		else if (string == "console")   tokenType = &TT_KEYWORD_CONSOLE;
@@ -234,8 +233,6 @@ public:
 		else if (string == "while")   tokenType = &TT_KEYWORD_WHILE;
 		else if (string == "for")     tokenType = &TT_KEYWORD_FOR;
 		else if (string == "do")      tokenType = &TT_KEYWORD_DO;
-		else if (string == "times")   tokenType = &TT_KEYWORD_TIMES;
-		else if (string == "seconds") tokenType = &TT_KEYWORD_SECONDS;
 
 		else if (string == "typeof")   tokenType = &TT_KEYWORD_TYPEOF;
 		else if (string == "undefine") tokenType = &TT_KEYWORD_UNDEFINE;
@@ -248,7 +245,6 @@ public:
 		else if (string == "Boolean") tokenType = &TT_KEYWORD_BOOLEAN;
 		else if (string == "Void")    tokenType = &TT_KEYWORD_VOID;
 
-		// else if (string == "set")       tokenType = &TT_SET;
 		else if (string == "equal")     tokenType = &TT_EQUAL;
 		else if (string == "make")      tokenType = &TT_MAKE;
 		else if (string == "reference") tokenType = &TT_REFERENCE;
@@ -313,7 +309,7 @@ public:
 
 		
 		if (!dotCount)
-			return Token(&TT_INT, startPos, this->position, Value(Number(std::stoll(numString))));
+			return Token(&TT_INT, startPos, this->position, Value(Number(numString)));
 //F Bad precision		// return Token(&TT_DOUBLE, startPos.copy(), this->position, new Value(Number(std::stod(numString))));
 	}
 

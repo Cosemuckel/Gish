@@ -11,7 +11,7 @@ public:
 };
 
 typedef ttmath::Big<32, 95> float128;
-typedef ttmath::Int<256> int256;
+typedef ttmath::Int<4> int256;
 
 class Number {
 public:
@@ -21,11 +21,18 @@ public:
 	
 	std::string toString() const {
 		return value.ToString();
-	}
+	}	
 
 };
 
+class Position;
+
 class Value {
+
+private:
+
+	Position* startPos = nullptr;
+	Position* endPos = nullptr;
 
 public:
 
@@ -38,7 +45,7 @@ public:
 		Null
 	};
 
-	static std::string typeName(Type t) {
+	static std::string typeName(Type const t) {
 		switch (t) {
 		case Type::Bool: return "bool";
 		case Type::Number: return "number";
@@ -49,7 +56,7 @@ public:
 		}
 	}
 
-	std::string typeName() {
+	std::string typeName() const {
 		return typeName(type);
 	}
 
@@ -68,7 +75,6 @@ public:
 	Value(std::vector<Value> a) : type(Type::Array), a(a) {}
 	Value() : type(Type::Null) {}
 	Value(const Value& v) {
-		std::cout << "Created: ";
 		type = v.type;
 		switch (type) {
 		case Type::Bool: b = v.b; break;
@@ -93,6 +99,20 @@ public:
 
 	~Value() {}
 	
+	Value* setStartPos(Position* pos) {
+		startPos = pos;
+		return this;
+	}
+	Value* setEndPos(Position* pos) {
+		endPos = pos;
+		return this;
+	}
+	Value* setPositions(Position* start, Position* end) {
+		startPos = start;
+		endPos = end;
+		return this;
+	}
+
 	Value& operator=(const Value& v) {
 		type = v.type;
 		switch (type) {
@@ -105,5 +125,75 @@ public:
 		}
 		return *this;
 	}
+	
+	Value& operator+(const Value& v) {
+		Value r = *this;
+		if (type == Type::Number && v.type == Type::Number) {
+			r.n.value += v.n.value;
+			return r;
+		}
+		if (type == Type::String && v.type == Type::String) {
+			r.s += v.s;
+			return r;
+		}
+		if (type == Type::Array && v.type == Type::Array) {
+			r.a.insert(r.a.end(), v.a.begin(), v.a.end());
+			return r;
+		}
+		throw RuntimeError("cannot add " + typeName() + " and " + v.typeName(), startPos, v.endPos);
+	}
 
+	Value& operator-(const Value& v) {
+		Value r = *this;
+		if (type == Type::Number && v.type == Type::Number) {
+			r.n.value -= v.n.value;
+			return r;
+		}
+		throw RuntimeError("cannot subtract " + v.typeName() + " from " + typeName(), startPos, v.endPos);
+	}
+
+	Value& operator-() {
+		Value r = *this;
+		if (type == Type::Number) {
+			r.n.value = -r.n.value;
+			return r;
+		}
+		throw RuntimeError("cannot negate " + typeName(), startPos, endPos);
+	}
+	
+	Value& operator*(const Value& v) {
+		Value r = *this;
+		if (type == Type::Number && v.type == Type::Number) {
+			r.n.value *= v.n.value;
+			return r;
+		}
+		if (type == Type::String && v.type == Type::Number) {
+			r.s = "";
+			for (int256 i = 0; i < v.n.value; i++) {
+				r.s += s;
+			}
+			return r;
+		}
+		if (type == Type::Number && v.type == Type::String) {
+			r.s = "";
+			for (int256 i = 0; i < n.value; i++) {
+				r.s += v.s;
+			}
+			return r;
+		}
+		throw RuntimeError("cannot multiply " + typeName() + " and " + v.typeName(), startPos, v.endPos);
+	}
+
+	Value& operator/(const Value& v) {
+		Value r = *this;
+		if (type == Type::Number && v.type == Type::Number) {
+			// Check for division by zero
+			if (v.n.value == 0) {
+				throw RuntimeError("division by zero", startPos, v.endPos);
+			}
+			r.n.value /= v.n.value;
+			return r;
+		}
+		throw RuntimeError("cannot divide " + typeName() + " and " + v.typeName(), startPos, v.endPos);
+	}
 };

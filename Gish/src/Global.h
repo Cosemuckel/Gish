@@ -68,7 +68,7 @@ public:
 	Error(std::string errorName, std::string errorMessage, Position* positionStart, Position* positionEnd)
 		: errorName(errorName), errorMessage(errorMessage), positionStart(positionStart), positionEnd(positionEnd) {}
 
-	Error(std::string errorName, std::string errorMessage, Position* positionStart) 
+	Error(std::string errorName, std::string errorMessage, Position* positionStart)
 		: Error(errorName, errorMessage, positionStart, positionStart) {}
 
 	Error() 
