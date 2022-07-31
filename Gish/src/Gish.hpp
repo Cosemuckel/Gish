@@ -11,10 +11,8 @@ namespace GishClient {
 	bool parsingOutput = true;
 	bool interpreterOutput = true;
 	bool lastInterpreterOutput = false;
-
-//D	std::vector<Value> valueList;
-//D	std::vector<Token> tokenList;
-//D	std::vector<NodeWrapper> wrappedNodeList;
+	
+	Environment mainEnvironment;
 
 	//Process the currently loaded code
 	bool execute() {
@@ -48,7 +46,7 @@ namespace GishClient {
 		//Evaluate the node tree using the interpreter
 		Value* interpreterResult;
 		try {
-			interpreterResult = Interpreter().run(parserResult);
+			interpreterResult = Interpreter().run(parserResult, &mainEnvironment);
 		} catch (Error e) {
 			std::cout << e.toString() << std::endl;
 			return false;
@@ -254,15 +252,15 @@ namespace GishClient {
 
 						//List all Variables
 						printf("  -Variables:\n");
-//R						auto it = mainContext.symbolTable.symbols.begin();
-/*						for (size_t i = 0; i < mainContext.symbolTable.symbols.size(); i++) {
-							printf("   %s %s: %s", it->second.Name().c_str(), it->first.c_str(), it->second.toString().c_str());
+						auto it = mainEnvironment.symbolTable->symbols.begin();
+						for (size_t i = 0; i < mainEnvironment.symbolTable->symbols.size(); i++) {
+							printf("   %s %s: %s", it->second->typeName().c_str(), it->first.c_str(), it->second->toString().c_str());
 							std::advance(it, 1);
 						}
 						//Print NaN to show there are no defined Variables
-						if (!mainContext.symbolTable.symbols.size())
+						if (!mainEnvironment.symbolTable->symbols.size())
 							printf("   NaN\n");
-
+						/*/
 						//List all functions/methods
 						printf("  -Functions:\n");
 						auto it2 = mainContext.functionTable.symbols.begin();

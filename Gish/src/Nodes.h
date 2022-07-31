@@ -150,6 +150,25 @@ class VariableAccessNode : public NodeBase {
 		
 };
 
+class IndexAccessNode : public NodeBase {
+	
+	public:
+		IndexAccessNode(NodeWrapper*, NodeWrapper*, int);
+		NodeWrapper* getIndex();
+		NodeWrapper* getRight();
+		int getType();
+		
+		std::string toString();
+
+		Value* evaluate(Environment*);
+		
+	private:
+		NodeWrapper* index = nullptr;
+		NodeWrapper* right = nullptr;
+		int type; // 0 -> index, 1 -> character
+		
+};
+
 class FunctionDefinitionNode : public NodeBase {
 	
 	public:
@@ -241,6 +260,21 @@ class AsLongAsNode : public NodeBase {
 		
 };
 
+class InterruptionNode : public NodeBase {
+	
+	public:
+		InterruptionNode(Token*);
+		Token* getTypeToken();
+		
+		std::string toString();
+		
+		Value* evaluate(Environment*);
+		
+	private:
+		Token* typeToken = nullptr;
+		
+};
+
 class NodeWrapper {
 private:
 	void* node = nullptr;	
@@ -255,11 +289,13 @@ public:
 		VariableDeclarationNode,
 		VariableReAssignNode,
 		VariableAccessNode,
+		IndexAccessNode,
 		FunctionDefinitionNode,
 		FunctionCallNode,
 		IfNode,
 		ForNode,
-		AsLongAsNode
+		AsLongAsNode,
+		InterruptionNode
 		
 	} nodeType;
 	
@@ -272,11 +308,13 @@ public:
 	NodeWrapper(VariableDeclarationNode*);
 	NodeWrapper(VariableReAssignNode*);
 	NodeWrapper(VariableAccessNode*);
+	NodeWrapper(IndexAccessNode*);
 	NodeWrapper(FunctionDefinitionNode*);
 	NodeWrapper(FunctionCallNode*);
 	NodeWrapper(IfNode*);
 	NodeWrapper(ForNode*);
 	NodeWrapper(AsLongAsNode*);
+	NodeWrapper(InterruptionNode*);
 
 	std::string typeName();
 	
@@ -368,17 +406,18 @@ Value* BinaryNode::evaluate(Environment* env) {
 	//Asyncronously evaluate the left and right nodes using std::async, if the depth is greater than 5
 	Value leftValue;
 	Value rightValue;
-	
+
 	if (this->depth > 5) {
 		std::future<Value*> leftFuture = std::async(std::launch::async, &NodeWrapper::evaluate, this->left, env);
 		std::future<Value*> rightFuture = std::async(std::launch::async, &NodeWrapper::evaluate, this->right, env);
 		leftValue = *leftFuture.get();
 		rightValue = *rightFuture.get();
-	} else {
+	}
+	else {
 		leftValue = *this->left->evaluate(env)->setPositions(this->left->getStartPosition(), this->left->getEndPosition());
 		rightValue = *this->right->evaluate(env)->setPositions(this->right->getStartPosition(), this->right->getEndPosition());
 	}
-	
+
 	//Perform the operation
 	if (this->operatorToken->matches(TT_PLUS))
 		return GlobalAllocator.allocate(Value(leftValue + rightValue));
@@ -387,7 +426,22 @@ Value* BinaryNode::evaluate(Environment* env) {
 	else if (this->operatorToken->matches(TT_MULT))
 		return GlobalAllocator.allocate(Value(leftValue * rightValue));
 	else if (this->operatorToken->matches(TT_DIV))
-		return GlobalAllocator.allocate(Value(leftValue / rightValue));	
+		return GlobalAllocator.allocate(Value(leftValue / rightValue));
+	else if (this->operatorToken->matches(TT_EQUAL))
+		return GlobalAllocator.allocate(Value((leftValue == rightValue).b.value ^ this->operatorToken->value.b.value));
+	else if (this->operatorToken->matches(TT_SMALL))
+		return GlobalAllocator.allocate(Value((leftValue < rightValue).b.value ^ this->operatorToken->value.b.value));
+	else if (this->operatorToken->matches(TT_GREAT))
+		return GlobalAllocator.allocate(Value((leftValue > rightValue).b.value ^ this->operatorToken->value.b.value));
+	else if (this->operatorToken->matches(TT_SMALL_EQ))
+		return GlobalAllocator.allocate(Value((leftValue <= rightValue).b.value ^ this->operatorToken->value.b.value));
+	else if (this->operatorToken->matches(TT_GREAT_EQ))
+		return GlobalAllocator.allocate(Value((leftValue >= rightValue).b.value ^ this->operatorToken->value.b.value));
+	else if (this->operatorToken->matches(TT_AND))
+		return GlobalAllocator.allocate(Value((leftValue.b.value && rightValue.b.value) ^ this->operatorToken->value.b.value));
+	else if (this->operatorToken->matches(TT_OR))
+		return GlobalAllocator.allocate(Value((leftValue.b.value || rightValue.b.value) ^ this->operatorToken->value.b.value));
+	else throw RuntimeError("Unknown operator: " + this->operatorToken->toString(), &this->operatorToken->startPos, &this->operatorToken->endPos);
 }
 
 //--------------------------
@@ -454,6 +508,9 @@ Value* ListNode::evaluate(Environment* env) {
 	value->a = std::vector<Value>();
 	for (NodeWrapper* node : *this->nodes) {
 		value->a.push_back(*node->evaluate(env));
+		//If we should break or continue, break
+		if (env->shouldBreak || env->shouldContinue)
+			break;
 	}
 	return value;
 }
@@ -540,9 +597,58 @@ Value* VariableAccessNode::evaluate(Environment* env) {
 	//Check if the variable exists in the environment, if not, throw an error
 	std::string name = this->nameToken->value.s;
 	if (!env->hasVariable(name))
-		throw RuntimeError("Variable " + name + "does not exist", &this->nameToken->startPos, &this->nameToken->endPos);
+		throw RuntimeError("Variable " + name + " does not exist", &this->nameToken->startPos, &this->nameToken->endPos);
 	//Return the value of the variable
 	return env->symbolTable->get(name);
+}
+
+//--------------------------
+//IndexAccessNode Defines
+//--------------------------
+IndexAccessNode::IndexAccessNode(NodeWrapper* index, NodeWrapper* right, int type) {
+	this->startPosition = index->getStartPosition();
+	this->endPosition = right->getEndPosition();
+	this->index = index;
+	this->right = right;
+	this->depth = max(index->getDepth(), right->getDepth()) + 1;
+	this->type = type;
+}
+NodeWrapper* IndexAccessNode::getIndex() {
+	return this->index;
+}
+NodeWrapper* IndexAccessNode::getRight() {
+	return this->right;
+}
+int IndexAccessNode::getType() {
+	return this->type;
+}
+std::string IndexAccessNode::toString() {
+	return "I( index " + this->index->toString() + " of " + this->right->toString() + " )I";
+}
+Value* IndexAccessNode::evaluate(Environment* env) {
+	Value* index = this->index->evaluate(env);
+	Value* right = this->right->evaluate(env);
+	if (index->type != Value::Type::Number)
+		throw RuntimeError("Index must be an integer", this->index->getStartPosition(), this->index->getEndPosition());
+	if (right->type != Value::Type::Array && right->type != Value::Type::String)
+		throw RuntimeError("Indexing can only be done on arrays or strings", this->right->getStartPosition(), this->right->getEndPosition());
+	if (this->type)
+		if (right->type != Value::Type::String)
+			throw RuntimeError("Character-Indexing can only be done on strings", this->right->getStartPosition(), this->right->getEndPosition());
+		else
+			if (index->n.value.ToInt() < 0 || index->n.value.ToInt() >= right->s.size())
+				throw RuntimeError("Index out of bounds", this->index->getStartPosition(), this->index->getEndPosition());
+			else return GlobalAllocator.allocate(Value(std::string(1, right->s[index->n.value.ToInt()])));
+	else
+		if (right->type == Value::Type::Array)
+			if (index->n.value.ToInt() < 0 || index->n.value.ToInt() >= right->a.size())
+				throw RuntimeError("Index out of bounds", this->index->getStartPosition(), this->index->getEndPosition());
+			else return GlobalAllocator.allocate(Value(right->a[index->n.value.ToInt()]));
+		else
+			if (index->n.value.ToInt() < 0 || index->n.value.ToInt() >= right->s.size())
+				throw RuntimeError("Index out of bounds", this->index->getStartPosition(), this->index->getEndPosition());
+			else
+				return GlobalAllocator.allocate(Value(std::string(1, right->s[index->n.value.ToInt()])));
 }
 
 //--------------------------
@@ -612,11 +718,17 @@ Value* FunctionCallNode::evaluate(Environment* env) {
 //--------------------------
 IfNode::IfNode(NodeWrapper* condition, NodeWrapper* thenBody, NodeWrapper* elseBody) {
 	this->startPosition = condition->getStartPosition();
-	this->endPosition = elseBody->getEndPosition();
+	if (elseBody == nullptr)
+		this->endPosition = thenBody->getEndPosition();
+	else
+		this->endPosition = elseBody->getEndPosition();
 	this->condition = condition;
 	this->thenBody = thenBody;
 	this->elseBody = elseBody;
-	this->depth = max(condition->getDepth(), max(thenBody->getDepth(), elseBody->getDepth())) + 1;
+	if (elseBody == nullptr)
+		this->depth = max(condition->getDepth(), thenBody->getDepth()) + 1;
+	else
+		this->depth = max(condition->getDepth(), thenBody->getDepth(), elseBody->getDepth()) + 1;
 }
 NodeWrapper* IfNode::getCondition() {
 	return this->condition;
@@ -628,7 +740,10 @@ NodeWrapper* IfNode::getElseBody() {
 	return this->elseBody;
 }
 std::string IfNode::toString() {
-	return "I( if " + this->condition->toString() + " do " + this->thenBody->toString() + " else " + this->elseBody->toString() + " )I";
+	if (this->elseBody == nullptr)
+		return "I( if " + this->condition->toString() + " do " + this->thenBody->toString() + " )I";
+	else
+		return "I( if " + this->condition->toString() + " do " + this->thenBody->toString() + " else " + this->elseBody->toString() + " )I";
 }
 Value* IfNode::evaluate(Environment* env) {
 	//Evaluate the condition
@@ -639,20 +754,25 @@ Value* IfNode::evaluate(Environment* env) {
 	//If the condition is true, evaluate the then body
 	if (condition->b.value)
 		return this->thenBody->evaluate(env);
-	//Otherwise, evaluate the else body
-	return this->elseBody->evaluate(env);
+	//Otherwise, evaluate the else body, if it exists
+	if (this->elseBody != nullptr)
+		return this->elseBody->evaluate(env);
+	return GlobalAllocator.allocate(Value());
 }
 
 //--------------------------
  //ForNode Defines
  //--------------------------
 ForNode::ForNode(NodeWrapper* amount, NodeWrapper* body, int type) {
-	this->startPosition = amount->getStartPosition();
+	this->startPosition = body->getStartPosition();
 	this->endPosition = body->getEndPosition();
 	this->amount = amount;
 	this->body = body;
 	this->type = type;
-	this->depth = max(amount->getDepth(), body->getDepth()) + 1;
+	if (amount != nullptr)
+		this->depth = max(amount->getDepth(), body->getDepth()) + 1;
+	else
+		this->depth = body->getDepth() + 1;
 }
 NodeWrapper* ForNode::getAmount() {
 	return this->amount;
@@ -669,6 +789,21 @@ std::string ForNode::toString() {
 	return "F( for " + this->amount->toString() + ( this->type ? "secs" : "its" ) + " do " + this->body->toString() + " )F";
 }
 Value* ForNode::evaluate(Environment* env) {
+	bool inLoop = env->inLoop;
+	//If the type is forever go into an infinite loop
+	if (this->type == 2) {
+		env->inLoop = true;
+		while (true) {
+			this->body->evaluate(env);
+			//If we should break, break
+			if (env->shouldBreak) {
+				env->shouldBreak = false;
+				break;
+			}
+		}
+		env->inLoop = inLoop;
+		return GlobalAllocator.allocate(Value());
+	}
 	//Evaluate the amount
 	Value* amount = this->amount->evaluate(env);
 	//If the amount is not a number, throw an error
@@ -676,24 +811,29 @@ Value* ForNode::evaluate(Environment* env) {
 		throw RuntimeError("Amount must be a number", this->amount->getStartPosition(), this->amount->getEndPosition());
 	//If the amount is 0, do nothing
 	if (amount->n.value == 0)
-		return new Value();
+		return GlobalAllocator.allocate(Value());
 	//Otherwise, evaluate the body
-	//If the type is forever go into an infinite loop
-	if (this->type == 2) {
-		while (true)
-			this->body->evaluate(env);
-	}
 	if (this->type == 0) {
+		env->inLoop = true;
 		//If the amount is a number, evaluate the body for that many times
-		for (int256 i = 0; i < amount->n.value; i++)
+		for (int256 i = 0; i < amount->n.value; i++) {
 			this->body->evaluate(env);
-		return new Value();
+			//If we should break, break
+			if (env->shouldBreak) {
+				env->shouldBreak = false;
+				break;
+			}
+		}
+		env->inLoop = inLoop;
+		return GlobalAllocator.allocate(Value());
 	}
 	//Otherwise, evaluate the body for that many seconds
+	env->inLoop = true;
 	auto start = std::chrono::high_resolution_clock::now();
 	while (int256(std::chrono::duration_cast<std::chrono::seconds>(std::chrono::high_resolution_clock::now() - start).count()) < amount->n.value)
 		this->body->evaluate(env);
-	return new Value();
+	env->inLoop = inLoop;
+	return GlobalAllocator.allocate(Value());
 }
 	
 //--------------------------
@@ -716,18 +856,51 @@ std::string AsLongAsNode::toString() {
 	return "A( as long as " + this->condition->toString() + " do " + this->body->toString() + " )A";
 }
 Value* AsLongAsNode::evaluate(Environment* env) {
+	bool inLoop = env->inLoop;
 	//Evaluate the condition
 	Value* condition = this->condition->evaluate(env);
 	//If the condition is not a boolean, throw an error
 	if (condition->type != Value::Type::Bool)
 		throw RuntimeError("Condition must be a boolean", this->condition->getStartPosition(), this->condition->getEndPosition());
 	//If the condition is true, evaluate the body until the condition is false
+	env->inLoop = true;  
 	while (condition->b.value) {
 		this->body->evaluate(env);
+		//If we should break, break
+		if (env->shouldBreak) {
+			env->shouldBreak = false;
+			break;
+		}
 		condition = this->condition->evaluate(env);
 	}
-	//Otherwise, return a null value
-	return new Value();
+	env->inLoop = inLoop;
+	return GlobalAllocator.allocate(Value());
+}
+
+//--------------------------
+//InterruptionNode Defines
+//--------------------------
+InterruptionNode::InterruptionNode(Token* typeToken) {
+	this->startPosition = &typeToken->startPos;
+	this->endPosition = &typeToken->endPos;
+	this->typeToken = typeToken;
+}
+std::string InterruptionNode::toString() {
+	return this->typeToken->matches(TT_KEYWORD_BREAK) ? "break" : "continue";
+}
+Token* InterruptionNode::getTypeToken() {
+	return this->typeToken;
+}
+Value* InterruptionNode::evaluate(Environment* env) {
+	//If we are not in a loop, throw an error
+	if (!env->inLoop)
+		throw RuntimeError("Cannot interrupt outside of a loop", this->startPosition, this->endPosition);
+	//If we are in a loop, interrupt the loop
+	if (this->typeToken->matches(TT_KEYWORD_BREAK))
+		env->shouldBreak = true;
+	else if (this->typeToken->matches(TT_KEYWORD_CONTINUE))
+		env->shouldContinue = true;
+	return GlobalAllocator.allocate(Value());
 }
 
 
@@ -762,6 +935,8 @@ std::string NodeWrapper::typeName() {
 		return "VariableReAssignNode";
 	case NodeType::VariableAccessNode:
 		return "VariableAccessNode";
+	case NodeType::IndexAccessNode:
+		return "IndexAccessNode";
 	case NodeType::FunctionDefinitionNode:
 		return "FunctionDefinitionNode";
 	case NodeType::FunctionCallNode:
@@ -772,6 +947,8 @@ std::string NodeWrapper::typeName() {
 		return "ForNode";
 	case NodeType::AsLongAsNode:
 		return "AsLongAsNode";
+	case NodeType::InterruptionNode:
+		return "InterruptionNode";
 	default:
 		return "UnknownNode '" + std::to_string((int)nodeType) + "'";
 	}
@@ -794,6 +971,8 @@ std::string NodeWrapper::toString() {
 		return ((VariableReAssignNode*)this->node)->toString();
 	case NodeType::VariableAccessNode:
 		return ((VariableAccessNode*)this->node)->toString();
+	case NodeType::IndexAccessNode:
+		return ((IndexAccessNode*)this->node)->toString();
 	case NodeType::FunctionDefinitionNode:
 		return ((FunctionDefinitionNode*)this->node)->toString();
 	case NodeType::FunctionCallNode:
@@ -804,6 +983,8 @@ std::string NodeWrapper::toString() {
 		return ((ForNode*)this->node)->toString();
 	case NodeType::AsLongAsNode:
 		return ((AsLongAsNode*)this->node)->toString();
+	case NodeType::InterruptionNode:
+		return ((InterruptionNode*)this->node)->toString();
 	default:
 		return "Error getting Node values for type '" + typeName() + "'";
 	}
@@ -827,6 +1008,8 @@ Position* NodeWrapper::getStartPosition() {
 		return ((VariableReAssignNode*)this->node)->startPosition;
 	case NodeType::VariableAccessNode:
 		return ((VariableAccessNode*)this->node)->startPosition;
+	case NodeType::IndexAccessNode:
+		return ((IndexAccessNode*)this->node)->startPosition;
 	case NodeType::FunctionDefinitionNode:
 		return ((FunctionDefinitionNode*)this->node)->startPosition;
 	case NodeType::FunctionCallNode:
@@ -837,6 +1020,8 @@ Position* NodeWrapper::getStartPosition() {
 		return ((ForNode*)this->node)->startPosition;
 	case NodeType::AsLongAsNode:
 		return ((AsLongAsNode*)this->node)->startPosition;
+	case NodeType::InterruptionNode:
+		return ((InterruptionNode*)this->node)->startPosition;
 	default:
 		return nullptr;
 	}
@@ -860,6 +1045,8 @@ Position* NodeWrapper::getEndPosition() {
 		return ((VariableReAssignNode*)this->node)->endPosition;
 	case NodeType::VariableAccessNode:
 		return ((VariableAccessNode*)this->node)->endPosition;
+	case NodeType::IndexAccessNode:
+		return ((IndexAccessNode*)this->node)->endPosition;
 	case NodeType::FunctionDefinitionNode:
 		return ((FunctionDefinitionNode*)this->node)->endPosition;
 	case NodeType::FunctionCallNode:
@@ -870,6 +1057,8 @@ Position* NodeWrapper::getEndPosition() {
 		return ((ForNode*)this->node)->endPosition;
 	case NodeType::AsLongAsNode:
 		return ((AsLongAsNode*)this->node)->endPosition;
+	case NodeType::InterruptionNode:
+		return ((InterruptionNode*)this->node)->endPosition;
 	default:
 		return nullptr;
 	}
@@ -893,6 +1082,8 @@ Value* NodeWrapper::evaluate(Environment* environment) {
 		return ((VariableReAssignNode*)this->node)->evaluate(environment);
 	case NodeType::VariableAccessNode:
 		return ((VariableAccessNode*)this->node)->evaluate(environment);
+	case NodeType::IndexAccessNode:
+		return ((IndexAccessNode*)this->node)->evaluate(environment);
 	case NodeType::FunctionDefinitionNode:
 		return ((FunctionDefinitionNode*)this->node)->evaluate(environment);
 	case NodeType::FunctionCallNode:
@@ -903,6 +1094,8 @@ Value* NodeWrapper::evaluate(Environment* environment) {
 		return ((ForNode*)this->node)->evaluate(environment);
 	case NodeType::AsLongAsNode:
 		return ((AsLongAsNode*)this->node)->evaluate(environment);
+	case NodeType::InterruptionNode:
+		return ((InterruptionNode*)this->node)->evaluate(environment);
 	default:
 		return nullptr;
 	}
@@ -926,6 +1119,8 @@ int NodeWrapper::getDepth() {
 		return 1 + ((VariableReAssignNode*)this->node)->getDepth();
 	case NodeType::VariableAccessNode:
 		return 1 + ((VariableAccessNode*)this->node)->getDepth();
+	case NodeType::IndexAccessNode:
+		return 1 + ((IndexAccessNode*)this->node)->getDepth();
 	case NodeType::FunctionDefinitionNode:
 		return 1 + ((FunctionDefinitionNode*)this->node)->getDepth();
 	case NodeType::FunctionCallNode:
@@ -936,6 +1131,8 @@ int NodeWrapper::getDepth() {
 		return 1 + ((ForNode*)this->node)->getDepth();
 	case NodeType::AsLongAsNode:
 		return 1 + ((AsLongAsNode*)this->node)->getDepth();
+	case NodeType::InterruptionNode:
+		return 1 + ((InterruptionNode*)this->node)->getDepth();
 	default:
 		return 0;
 	}
@@ -973,6 +1170,10 @@ NodeWrapper::NodeWrapper(VariableAccessNode* node) {
 	this->node = node;
 	nodeType = NodeType::VariableAccessNode;
 }
+NodeWrapper::NodeWrapper(IndexAccessNode* node) {
+	this->node = node;
+	nodeType = NodeType::IndexAccessNode;
+}
 NodeWrapper::NodeWrapper(FunctionDefinitionNode* node) {
 	this->node = node;
 	nodeType = NodeType::FunctionDefinitionNode;
@@ -992,4 +1193,8 @@ NodeWrapper::NodeWrapper(ForNode* node) {
 NodeWrapper::NodeWrapper(AsLongAsNode* node) {
 	this->node = node;
 	nodeType = NodeType::AsLongAsNode;
+}
+NodeWrapper::NodeWrapper(InterruptionNode* node) {
+	this->node = node;
+	nodeType = NodeType::InterruptionNode;
 }

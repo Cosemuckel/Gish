@@ -10,6 +10,7 @@
 #include <thread>
 #include <conio.h>
 #include <future>
+#include <cstring>
 
 #include "ttmath.h"
 
