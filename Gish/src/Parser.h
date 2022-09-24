@@ -73,9 +73,11 @@ public:
 		this->advance();
 	}
 
-	Token* advance() {		
-		if (this->currenToken < int(this->tokens->size()) - 1)
+	Token* advance() {
+		
+		if (this->currenToken < int(this->tokens->size()) - 1) {
 			this->currenToken++;
+		}
 		return &tokens->at(this->currenToken);
 	}
 
@@ -84,12 +86,6 @@ public:
 		this->advance();
 		return token;
 	}
-	Token* retreat() {
-		if (this->currenToken > 0)
-			this->currenToken--;
-		return &tokens->at(this->currenToken);
-	}
-	
 
 	NodeWrapper* parse() {
 		NodeWrapper* result = listExpression(&TT_EOF);
@@ -115,7 +111,6 @@ public:
 				throw InvalidSyntaxError("Expected ';' instead of " + this->getCurrentToken()->toString(), &this->getCurrentToken()->startPos, &this->getCurrentToken()->endPos);
 			statements->push_back(node);
 		}
-		this->advance();
 		NodeWrapper* listNode = GlobalAllocator.allocate(NodeWrapper(GlobalAllocator.allocate(ListNode(statements))));
 		return listNode;
 	}
@@ -123,17 +118,18 @@ public:
 	NodeWrapper* functionalExpression() {
 		Token* token = this->getCurrentToken();
 		if (token->matches(TT_KEYWORD_DO)) {
-			token = this->advance();
+			this->advance();
+			token = this->getThenAdvance();
 			NodeWrapper* body;
-			if (token->matches(TT_NOTHING)) { this->advance();  body = GlobalAllocator.allocate(NodeWrapper(GlobalAllocator.allocate(ListNode(GlobalAllocator.allocate(std::vector<NodeWrapper*>()))))); }
-			else if (token->matches(TT_L_CURLY_PAREN)) { this->advance(); body = this->listExpression(&TT_R_CURLY_PAREN); }
-			else body = this->functionalExpression();
+			if (token->matches(TT_NOTHING)) body = GlobalAllocator.allocate(NodeWrapper(GlobalAllocator.allocate(ListNode(GlobalAllocator.allocate(std::vector<NodeWrapper*>())))));
+			else if (token->matches(TT_L_CURLY_PAREN)) body = this->listExpression(&TT_R_CURLY_PAREN);
+			else body = this->variableChangingExpression();
 			// If
 			if (this->getCurrentToken()->matches(TT_KEYWORD_IF)) {
 				token = this->advance();
 				NodeWrapper* condition = this->expression();
 				if (this->getCurrentToken()->matches(TT_COMMA)) {
-					this->advance(); 
+					this->advance();
 					if (!this->getCurrentToken()->matches(TT_KEYWORD_ELSE))
 						throw InvalidSyntaxError("Expected 'else' instead of " + token->toString(), &token->startPos, &token->endPos);
 					this->advance();
@@ -142,7 +138,6 @@ public:
 					NodeWrapper* elseBody = this->functionalExpression();
 					return GlobalAllocator.allocate(NodeWrapper(GlobalAllocator.allocate(IfNode(condition, body, elseBody))));
 				}
-				return GlobalAllocator.allocate(NodeWrapper(GlobalAllocator.allocate(IfNode(condition, body, nullptr))));
 			}
 			// For
 			if (this->getCurrentToken()->matches(TT_KEYWORD_FOR)) {
@@ -159,7 +154,7 @@ public:
 			if (this->getCurrentToken()->matchesWord("forever")) {
 				std::cout << this->getCurrentToken()->toString() << std::endl;
 				this->advance();
-				return GlobalAllocator.allocate(NodeWrapper(GlobalAllocator.allocate(ForNode(nullptr, body, 2))));
+				return GlobalAllocator.allocate(NodeWrapper(GlobalAllocator.allocate(ForNode(0, body, 2))));
 			}
 			//As long as
 			if (this->getCurrentToken()->matchesWord("as")) {
@@ -175,14 +170,6 @@ public:
 			}
 			
 			return body;
-		}
-		return this->unusableExpression();
-	}
-
-	NodeWrapper* unusableExpression() {
-		if (this->getCurrentToken()->matches(TT_KEYWORD_BREAK) || this->getCurrentToken()->matches(TT_KEYWORD_CONTINUE)) {
-			this->advance();
-			return GlobalAllocator.allocate(NodeWrapper(GlobalAllocator.allocate(InterruptionNode(this->getLastToken()))));
 		}
 		return this->variableChangingExpression();
 	}
@@ -318,7 +305,7 @@ public:
 			return valueNode;
 		}
 		if (token->matches(TT_L_SQUARE_PAREN)) {
-			std::vector<NodeWrapper*>* nodes =  GlobalAllocator.allocate(std::vector<NodeWrapper*>());
+			std::vector<NodeWrapper*>* nodes = new std::vector<NodeWrapper*>();
 			while (true) {
 				NodeWrapper* node = this->expression();
 				nodes->push_back(node);
@@ -341,14 +328,6 @@ public:
 				throw InvalidSyntaxError("Expected ')' ", &getCurrentToken()->startPos, &getCurrentToken()->endPos);
 			this->advance();
 			return node;
-		}
-		if (token->matches(TT_KEYWORD_INDEX) || token->matches(TT_KEYWORD_CHARACTER)) {
-			NodeWrapper* indexNode = this->expression();
-			if (!this->getCurrentToken()->matchesWord("of"))
-				throw InvalidSyntaxError("Expected 'of'", &this->getCurrentToken()->startPos, &this->getCurrentToken()->endPos);
-			this->advance();
-			NodeWrapper* value = this->expression();
-			return GlobalAllocator.allocate(NodeWrapper(GlobalAllocator.allocate(IndexAccessNode(indexNode, value, token->matches(TT_KEYWORD_CHARACTER)))));
 		}
 		// Throw an error because no matching token has been found
 		throw InvalidSyntaxError("Expected value", &token->startPos, &token->endPos);

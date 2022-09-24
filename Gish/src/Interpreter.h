@@ -4,8 +4,7 @@ class Interpreter {
 
 public:
 
-	Value* run(NodeWrapper* node, Environment* env) {
-		this->environment = env;
+	Value* run(NodeWrapper* node) {
 		return node->evaluate(this->environment);
 	}
 

@@ -47,12 +47,12 @@ public:
 
 	static std::string typeName(Type const t) {
 		switch (t) {
-		case Type::Bool: return "Boolean";
-		case Type::Number: return "Number";
-		case Type::String: return "String";
-		case Type::Array: return "Array";
-		case Type::Void: return "Void";
-		case Type::Null: return "Null";
+		case Type::Bool: return "bool";
+		case Type::Number: return "number";
+		case Type::String: return "string";
+		case Type::Array: return "array";
+		case Type::Void: return "void";
+		case Type::Null: return "null";
 		}
 	}
 
@@ -194,143 +194,6 @@ public:
 			r.n.value /= v.n.value;
 			return r;
 		}
-		throw RuntimeError("cannot divide " + typeName() + " by " + v.typeName(), startPos, v.endPos);
+		throw RuntimeError("cannot divide " + typeName() + " and " + v.typeName(), startPos, v.endPos);
 	}
-
-	Value& operator==(const Value& v) {
-		Value r = *this;
-		if (type == Type::Bool && v.type == Type::Bool) {
-			r.b.value = b.value == v.b.value;
-			return r;
-		}
-		if (type == Type::Number && v.type == Type::Number) {
-			r.b.value = n.value == v.n.value;
-			return r;
-		}
-		if (type == Type::String && v.type == Type::String) {
-			if (s.size() != v.s.size()) {
-				r.b.value = false;
-				return r;
-			}
-			for (int i = 0; i < s.size(); i++) {
-				if (s[i] != v.s[i]) {
-					r.b.value = false;
-					return r;
-				}
-			}
-			r.b.value = true;
-			return r;
-		}
-		if (type == Type::Array && v.type == Type::Array) {
-			if (a.size() != v.a.size()) {
-				r.b.value = false;
-				return r;
-			}
-			for (int i = 0; i < a.size(); i++) {
-				if ((a[i] != v.a[i]).b.value) {
-					r.b.value = false;
-					return r;
-				}
-			}
-			r.b.value = true;
-			return r;
-		}
-		throw RuntimeError("cannot compare " + typeName() + " to " + v.typeName(), startPos, v.endPos);
-	}
-	
-	Value& operator!=(const Value& v) {
-		Value r = *this;
-		if (type == Type::Bool && v.type == Type::Bool) {
-			r.b.value = b.value != v.b.value;
-			return r;
-		}
-		if (type == Type::Number && v.type == Type::Number) {
-			r.b.value = n.value != v.n.value;
-			return r;
-		}
-		if (type == Type::String && v.type == Type::String) {
-			if (s.size() != v.s.size()) {
-				r.b.value = true;
-				return r;
-			}
-			for (int i = 0; i < s.size(); i++) {
-				if (s[i] != v.s[i]) {
-					r.b.value = true;
-					return r;
-				}
-			}
-			r.b.value = false;
-			return r;
-		}
-		if (type == Type::Array && v.type == Type::Array) {
-			if (a.size() != v.a.size()) {
-				r.b.value = true;
-				return r;
-			}
-			for (int i = 0; i < a.size(); i++) {
-				if ((a[i] != v.a[i]).b.value) {
-					r.b.value = true;
-					return r;
-				}
-			}
-			r.b.value = false;
-			return r;
-		}
-		throw RuntimeError("cannot compare " + typeName() + " to " + v.typeName(), startPos, v.endPos);
-	}
-
-	Value& operator<(const Value& v) {
-		Value r = *this;
-		if (type == Type::Number && v.type == Type::Number) {
-			r.b.value = n.value < v.n.value;
-			return r;
-		}
-		throw RuntimeError("cannot compare " + typeName() + " to " + v.typeName(), startPos, v.endPos);
-	}
-	
-	Value& operator>(const Value& v) {
-		Value r = *this;
-		if (type == Type::Number && v.type == Type::Number) {
-			r.b.value = n.value > v.n.value;
-			return r;
-		}
-		throw RuntimeError("cannot compare " + typeName() + " to " + v.typeName(), startPos, v.endPos);
-	}
-
-	Value& operator<=(const Value& v) {
-		Value r = *this;
-		if (type == Type::Number && v.type == Type::Number) {
-			r.b.value = n.value <= v.n.value;
-			return r;
-		}
-		throw RuntimeError("cannot compare " + typeName() + " to " + v.typeName(), startPos, v.endPos);
-	}
-
-	Value& operator>=(const Value& v) {
-		Value r = *this;
-		if (type == Type::Number && v.type == Type::Number) {
-			r.b.value = n.value >= v.n.value;
-			return r;
-		}
-		throw RuntimeError("cannot compare " + typeName() + " to " + v.typeName(), startPos, v.endPos);
-	}
-
-	Value& operator&&(const Value& v) {
-		Value r = *this;
-		if (type == Type::Bool && v.type == Type::Bool) {
-			r.b.value = b.value && v.b.value;
-			return r;
-		}
-		throw RuntimeError("cannot compare " + typeName() + " to " + v.typeName(), startPos, v.endPos);
-	}
-
-	Value& operator||(const Value& v) {
-		Value r = *this;
-		if (type == Type::Bool && v.type == Type::Bool) {
-			r.b.value = b.value || v.b.value;
-			return r;
-		}
-		throw RuntimeError("cannot compare " + typeName() + " to " + v.typeName(), startPos, v.endPos);
-	}
-
 };
