@@ -48,6 +48,19 @@ public:
 		else return tokenType->toString();
 	}
 
+	std::string symbolic() {
+		//If the token is a binary operator, return the symbol
+		if (this->matches(TT_PLUS)) return "+";
+		if (this->matches(TT_MINUS)) return "-";
+		if (this->matches(TT_MULT)) return "*";
+		if (this->matches(TT_DIV)) return "/";
+		if (this->matches(TT_EQUAL)) if (!this->value.b.value) return "=="; else return "!=";
+		if (this->matches(TT_SMALL)) if (!this->value.b.value) return "<"; else return ">=";
+		if (this->matches(TT_SMALL_EQ)) if (!this->value.b.value) return "<="; else return ">";
+		if (this->matches(TT_GREAT)) if (!this->value.b.value) return ">"; else return "<=";
+		if (this->matches(TT_GREAT_EQ)) if (!this->value.b.value) return ">="; else return "<";		
+	}
+
 	//Copy constructor
 	Token(const Token& token) {
 		this->tokenType = token.tokenType;

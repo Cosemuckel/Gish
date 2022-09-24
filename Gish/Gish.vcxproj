@@ -93,10 +93,12 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="bin\Release\x64\Gish.exe" />
+    <None Include="src\Compile.bat" />
     <None Include="Todo.md" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Allocator.h" />
+    <ClInclude Include="src\Compiler.h" />
     <ClInclude Include="src\Environment.h" />
     <ClInclude Include="src\ExitCodes.h" />
     <ClInclude Include="src\Functions.h" />

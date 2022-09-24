@@ -62,6 +62,7 @@ std::string joinPointer(std::vector<T>& v, const char* delimiter) {
 #include "Nodes.h"
 #include "Parser.h"
 #include "Interpreter.h"
+#include "Compiler.h"
 #include "Gish.hpp"
 
 #include "PostDefines.h"

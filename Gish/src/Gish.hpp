@@ -43,6 +43,8 @@ namespace GishClient {
 		if (parsingOutput)
 			std::cout << "\n" << ( parserResult->toString() ) << "\n";
 
+		/* INTERPRETER
+
 		//Evaluate the node tree using the interpreter
 		Value* interpreterResult;
 		try {
@@ -55,6 +57,12 @@ namespace GishClient {
 		//Print the output created by the interpreter
 		if (interpreterOutput)
 			std::cout << "\n" << ( interpreterResult->toString() ) << "\n";
+
+		*/
+
+		//Compile the code
+		Compiler compiler;
+		compiler.compile(parserResult, currentFileName);	
 		
 		return true;
 	}
@@ -94,7 +102,7 @@ namespace GishClient {
 
 			//Load the input into the code, and set filename to stdin
 			currentCode = s;
-			currentFileName = "<stdin>";
+			currentFileName = "stdin";
 			//Process the code
 			if (!run())
 				return false;
